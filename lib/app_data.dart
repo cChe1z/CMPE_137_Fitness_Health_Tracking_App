@@ -3,10 +3,16 @@ import 'package:flutter/material.dart';
 class Meal {
   final String name;
   final int calories;
+  final int protein;
+  final int carbs;
+  final int fats;
 
   Meal({
     required this.name,
     required this.calories,
+    this.protein = 0,
+    this.carbs = 0,
+    this.fats = 0,
   });
 }
 
@@ -20,10 +26,12 @@ class AppData {
     return meals.value.fold(0, (sum, meal) => sum + meal.calories);
   }
 
-  static void addMeal(String name, int calories) {
+  static void addMeal(String name, int calories,
+      {int protein = 0, int carbs = 0, int fats = 0}) {
     meals.value = [
       ...meals.value,
-      Meal(name: name, calories: calories),
+      Meal(name: name, calories: calories,
+          protein: protein, carbs: carbs, fats: fats),
     ];
   }
 
