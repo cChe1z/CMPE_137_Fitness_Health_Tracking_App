@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'registration_screen.dart';
-// import 'dashboard_screen.dart';
+import 'dashboard_screen.dart';
+import 'services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
+  void _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -49,9 +50,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (hasError) return;
 
-    // ---------------------------add auth here-------------------------
-    // Navigator.pushReplacement(context,
-    //   MaterialPageRoute(builder: (_) => const DashboardScreen()));
+    final user = await AuthService().login(email, password);
+    if (!mounted) return;
+
+    if (user != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } else {
+      setState(() => _emailError = 'Invalid email or password');
+    }
   }
 
   @override

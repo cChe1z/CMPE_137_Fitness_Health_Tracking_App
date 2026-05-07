@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'services/database_service.dart';
+import 'app_data.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -47,7 +50,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     super.dispose();
   }
 
-  void _continue() {
+  void _continue() async {
     // reset all errors
     setState(() {
       _ageError = null;
@@ -104,7 +107,35 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     if (hasError) return;
 
-    // ----------- add: save profile data ---------------------------
+    final heightInches = (_selectedFeet * 12 + _selectedInches).toDouble();
+
+    // update local AppData for dashboard display
+    AppData.saveProfileData(
+      age: age!,
+      weightLbs: weight!,
+      heightInches: heightInches,
+      gender: _selectedGender!,
+      activityLevel: _selectedActivityLevel!,
+      goal: _selectedGoal!,
+    );
+
+    // save to Firestore
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await DatabaseService().saveUserProfile(user.uid, {
+        'age': age,
+        'weightLbs': weight,
+        'heightInches': heightInches,
+        'gender': _selectedGender,
+        'activityLevel': _selectedActivityLevel,
+        'goal': _selectedGoal,
+        'calorieGoal': AppData.calorieGoal.value,
+        'bmi': AppData.bmi.value,
+      });
+    }
+
+    if (!mounted) return;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const DashboardScreen()),

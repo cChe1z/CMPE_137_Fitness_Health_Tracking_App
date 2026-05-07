@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'profile_setup_screen.dart';
+import 'services/auth_service.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -28,7 +29,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.dispose();
   }
 
-  void _register() {
+  void _register() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
@@ -68,11 +69,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     if (hasError) return;
 
-    // ---------------------------add auth here-------------------------
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
-    );
+    final user = await AuthService().signUp(email, password);
+    if (!mounted) return;
+
+    if (user != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+      );
+    } else {
+      setState(() => _emailError = 'Registration failed. Try again.');
+    }
   }
 
   @override
