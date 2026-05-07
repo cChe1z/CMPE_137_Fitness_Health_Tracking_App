@@ -1,38 +1,43 @@
 import 'package:flutter/material.dart';
-import 'registration_screen.dart';
-// import 'dashboard_screen.dart';
+// import 'profile_setup_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegistrationScreen extends StatefulWidget {
+  const RegistrationScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegistrationScreen> createState() => _RegistrationScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegistrationScreenState extends State<RegistrationScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
-  // track errors
+  // track which fields have errors
   String? _emailError;
   String? _passwordError;
+  String? _confirmPasswordError;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _login() {
+  void _register() {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
 
     // reset errors first
     setState(() {
       _emailError = null;
       _passwordError = null;
+      _confirmPasswordError = null;
     });
 
     bool hasError = false;
@@ -40,18 +45,34 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty) {
       setState(() => _emailError = 'Email is required');
       hasError = true;
+    } else if (!email.contains('@') || !email.contains('.')) {
+      setState(() => _emailError = 'Please enter a valid email');
+      hasError = true;
     }
 
     if (password.isEmpty) {
       setState(() => _passwordError = 'Password is required');
+      hasError = true;
+    } else if (password.length < 6) {
+      setState(() => _passwordError = 'Password must be at least 6 characters');
+      hasError = true;
+    }
+
+    if (confirmPassword.isEmpty) {
+      setState(() => _confirmPasswordError = 'Please confirm your password');
+      hasError = true;
+    } else if (password != confirmPassword) {
+      setState(() => _confirmPasswordError = 'Passwords do not match');
       hasError = true;
     }
 
     if (hasError) return;
 
     // ---------------------------add auth here-------------------------
-    // Navigator.pushReplacement(context,
-    //   MaterialPageRoute(builder: (_) => const DashboardScreen()));
+    // Navigator.pushReplacement(
+    //   context,
+    //   MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+    // );
   }
 
   @override
@@ -66,26 +87,17 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
 
-                // Avatar icon
-                const CircleAvatar(
-                  radius: 45,
-                  backgroundColor: Color(0xFFE3F2FD),
-                  child: Icon(Icons.person, size: 50, color: Color(0xFF378ADD)),
-                ),
-                const SizedBox(height: 20),
-
-                // Welcome text
                 const Text(
-                  'Welcome!',
+                  'Create account',
                   style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                 ),
                 const Text(
-                  'Log in to your account',
+                  'Start your fitness journey',
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
 
-                // Email field
+                // email field
                 _buildTextField(
                   controller: _emailController,
                   hint: 'Email',
@@ -94,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Password field
+                // password field
                 _buildTextField(
                   controller: _passwordController,
                   hint: 'Password',
@@ -104,15 +116,28 @@ class _LoginScreenState extends State<LoginScreen> {
                     setState(() => _obscurePassword = !_obscurePassword);
                   },
                 ),
+                const SizedBox(height: 16),
+
+                // confirm password field
+                _buildTextField(
+                  controller: _confirmPasswordController,
+                  hint: 'Confirm Password',
+                  obscureText: _obscureConfirmPassword,
+                  errorText: _confirmPasswordError,
+                  toggleObscure: () {
+                    setState(() =>
+                    _obscureConfirmPassword = !_obscureConfirmPassword);
+                  },
+                ),
                 const SizedBox(height: 24),
 
-                // Login button
+                // sign up button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _register,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF378ADD),
+                      backgroundColor: const Color(0xFF2196F3),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -120,29 +145,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     child: const Text(
-                      'Log in',
+                      'Sign up',
                       style: TextStyle(fontSize: 16),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // Sign up link
+                // login link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Don't have an account? "),
+                    const Text('Already have an account? '),
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RegistrationScreen(),
-                          ),
-                        );
-                      },
+                      onTap: () => Navigator.pop(context),
                       child: const Text(
-                        'Sign up',
+                        'Log in',
                         style: TextStyle(
                           color: Color(0xFFD85A30),
                           fontWeight: FontWeight.bold,
@@ -166,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
     VoidCallback? toggleObscure,
-    String? errorText,
+    String? errorText,   // null = no error, string = show error
   }) {
     final hasError = errorText != null;
 
@@ -181,12 +199,13 @@ class _LoginScreenState extends State<LoginScreen> {
             hintText: hint,
             filled: true,
             fillColor: hasError
-                ? const Color(0xFFD85A30).withValues(alpha: 0.05)
+                ? const Color(0xFFD85A30).withValues(alpha: 0.05) // subtle orange tint
                 : const Color(0xFFF5F5F5),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
             ),
+            // orange border when there's an error
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: hasError
@@ -197,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
               borderRadius: BorderRadius.circular(10),
               borderSide: hasError
                   ? const BorderSide(color: Color(0xFFD85A30), width: 2)
-                  : const BorderSide(color: Color(0xFF378ADD), width: 2),
+                  : const BorderSide(color: Color(0xFF2196F3), width: 2),
             ),
             suffixIcon: toggleObscure != null
                 ? IconButton(
@@ -211,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
 
-        // error message below field
+        // error message below the field
         if (hasError) ...[
           const SizedBox(height: 4),
           Row(
