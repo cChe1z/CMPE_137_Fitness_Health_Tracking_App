@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Welcome text
                 const Text(
                   'Welcome!',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
                 const Text(
                   'Log in to your account',

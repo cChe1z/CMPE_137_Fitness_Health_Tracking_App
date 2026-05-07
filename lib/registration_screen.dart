@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'profile_setup_screen.dart';
+import 'profile_setup_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -69,10 +69,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (hasError) return;
 
     // ---------------------------add auth here-------------------------
-    // Navigator.pushReplacement(
-    //   context,
-    //   MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
-    // );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+    );
   }
 
   @override
@@ -89,7 +89,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
                 const Text(
                   'Create account',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
                 const Text(
                   'Start your fitness journey',
