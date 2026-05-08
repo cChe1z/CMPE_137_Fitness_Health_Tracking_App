@@ -715,7 +715,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: Colors.grey,
                   fontWeight: FontWeight.w500)),
           const SizedBox(width: 8),
-          const Icon(Icons.edit,
+          const Icon(Icons.chevron_right,
               color: Colors.grey, size: 18),
         ],
       ),
@@ -816,7 +816,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                     .start,
                                                 children: [
                                                   Text(
-                                                    user?.email ?? 'User',
+                                                    AppData.userName.value.isNotEmpty
+                                                        ? AppData.userName.value
+                                                        : user?.email ?? 'User',
                                                     style: const TextStyle(
                                                         fontWeight:
                                                         FontWeight
@@ -825,6 +827,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                     overflow: TextOverflow
                                                         .ellipsis,
                                                   ),
+                                                  if (AppData.userName.value.isNotEmpty) ...[
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      user?.email ?? '',
+                                                      style: const TextStyle(
+                                                          color: Colors.grey,
+                                                          fontSize: 12),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
                                                   const SizedBox(
                                                       height: 4),
                                                   Container(
@@ -1537,7 +1549,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ─── Level picker sheet (updates all days) ──────────────────
+// ─── Level picker sheet (profile-specific, updates all days) ──────────────────
 
 class _ProfileLevelPickerSheet extends StatelessWidget {
   final String? current;

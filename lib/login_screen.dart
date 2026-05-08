@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'registration_screen.dart';
-import 'dashboard_screen.dart';
 import 'profile_setup_screen.dart';
+import 'main_navigation.dart';
 import 'app_data.dart';
 import 'services/auth_service.dart';
 import 'services/database_service.dart';
-import 'main_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,7 +18,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
-  // track errors
   String? _emailError;
   String? _passwordError;
 
@@ -34,7 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // reset errors first
     setState(() {
       _emailError = null;
       _passwordError = null;
@@ -58,18 +55,16 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (user != null) {
-      // check if this user has already completed profile setup
       final profile = await DatabaseService().getUserProfile(user.uid);
       if (!mounted) return;
 
       if (profile == null) {
-        // no profile found — send to setup screen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
         );
       } else {
-        // profile exists — restore their saved data into AppData
+        // restore profile data into AppData
         final level = profile['fitnessLevel'] as String? ?? 'Beginner';
         AppData.fitnessLevel.value = level;
         AppData.initDefaultSchedule(level);
@@ -77,6 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
             (profile['calorieGoal'] as num?)?.toInt() ?? 2200;
         AppData.bmi.value =
             (profile['bmi'] as num?)?.toDouble() ?? 0.0;
+
+        // restore name
+        AppData.userName.value = profile['name'] as String? ?? '';
 
         // restore profile screen fields
         AppData.age.value =
@@ -89,20 +87,21 @@ class _LoginScreenState extends State<LoginScreen> {
             profile['gender'] as String? ?? '';
         AppData.activityLevel.value =
             profile['activityLevel'] as String? ?? '';
+
         // sanitize legacy 'Muscle Gain' value -> 'Bulk'
         final rawGoal = profile['goal'] as String? ?? '';
         final sanitizedGoal = rawGoal == 'Muscle Gain' ? 'Bulk' : rawGoal;
         AppData.goal.value = sanitizedGoal;
 
-        // update Firestore if the value was stale
         if (rawGoal == 'Muscle Gain') {
           DatabaseService().updateUserProfile(user.uid, {'goal': 'Bulk'});
         }
+
         AppData.weightGoalRate.value =
-            profile['weightGoalRate'] as String?;
+        profile['weightGoalRate'] as String?;
         AppData.targetWeight.value =
             (profile['targetWeight'] as num?)?.toDouble() ??
-            AppData.currentWeight.value;
+                AppData.currentWeight.value;
 
         // restore today's logged meals from Firestore
         await AppData.loadTodaysMeals(user.uid);
@@ -130,7 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
 
-                // Avatar icon
                 const CircleAvatar(
                   radius: 45,
                   backgroundColor: Color(0xFFE3F2FD),
@@ -138,7 +136,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Welcome text
                 const Text(
                   'Welcome!',
                   style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -149,7 +146,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Email field
                 _buildTextField(
                   controller: _emailController,
                   hint: 'Email',
@@ -158,7 +154,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Password field
                 _buildTextField(
                   controller: _passwordController,
                   hint: 'Password',
@@ -170,7 +165,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Login button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -191,7 +185,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Sign up link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -275,7 +268,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
 
-        // error message below field
         if (hasError) ...[
           const SizedBox(height: 4),
           Row(

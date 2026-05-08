@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dashboard_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'services/database_service.dart';
 import 'app_data.dart';
@@ -13,6 +12,7 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+  final _nameController = TextEditingController();
   final _ageController = TextEditingController();
   final _weightController = TextEditingController();
   int _selectedFeet = 5;
@@ -22,17 +22,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   String? _selectedGender;
   String? _selectedActivityLevel;
   String? _selectedGoal;
-  String? _selectedWeightGoalRate; // NEW — e.g. 'Mild Weight Loss'
+  String? _selectedWeightGoalRate;
   String? _selectedFitnessLevel;
 
   // errors
+  String? _nameError;
   String? _ageError;
   String? _weightError;
   String? _heightError;
   String? _genderError;
   String? _activityError;
   String? _goalError;
-  String? _weightGoalRateError; // NEW
+  String? _weightGoalRateError;
   String? _fitnessLevelError;
 
   final List<String> _genders = ['Male', 'Female', 'Prefer not to say'];
@@ -69,15 +70,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     },
   ];
 
-  // whether the selected goal requires a rate picker
   bool get _goalNeedsRate =>
       _selectedGoal == 'Weight Loss' || _selectedGoal == 'Bulk';
 
-  // the rate options to show based on the selected goal
   List<Map<String, dynamic>> get _rateOptions =>
       _selectedGoal == 'Weight Loss' ? kWeightLossRates : kWeightGainRates;
 
-  // live maintenance calories for calorie preview — only when enough data is entered
   int? get _maintenanceCalories {
     final age = int.tryParse(_ageController.text.trim());
     final weight = double.tryParse(_weightController.text.trim());
@@ -96,14 +94,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _ageController.dispose();
     _weightController.dispose();
     super.dispose();
   }
 
   void _continue() async {
-    // reset all errors
     setState(() {
+      _nameError = null;
       _ageError = null;
       _weightError = null;
       _heightError = null;
@@ -115,6 +114,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     });
 
     bool hasError = false;
+
+    // name validation
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _nameError = 'Name is required');
+      hasError = true;
+    }
 
     // age validation
     final age = int.tryParse(_ageController.text.trim());
@@ -136,13 +142,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       hasError = true;
     }
 
-    // height validation
     if (!_heightSelected) {
       setState(() => _heightError = 'Please select your height');
       hasError = true;
     }
 
-    // dropdown validations
     if (_selectedGender == null) {
       setState(() => _genderError = 'Please select a gender');
       hasError = true;
@@ -158,10 +162,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       hasError = true;
     }
 
-    // rate validation — only required if goal needs one
     if (_goalNeedsRate && _selectedWeightGoalRate == null) {
-      setState(() =>
-          _weightGoalRateError = 'Please select a rate');
+      setState(() => _weightGoalRateError = 'Please select a rate');
       hasError = true;
     }
 
@@ -174,7 +176,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     final heightInches = (_selectedFeet * 12 + _selectedInches).toDouble();
 
-    // update local AppData for dashboard display
+    // save name to AppData
+    AppData.userName.value = name;
+
     AppData.saveProfileData(
       age: age!,
       weightLbs: weight!,
@@ -185,14 +189,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       weightGoalRate: _goalNeedsRate ? _selectedWeightGoalRate : null,
     );
 
-    // save chosen fitness level and seed the default 7-day schedule
     AppData.fitnessLevel.value = _selectedFitnessLevel;
     AppData.initDefaultSchedule(_selectedFitnessLevel!);
 
-    // save to Firestore
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await DatabaseService().saveUserProfile(user.uid, {
+        'name': name,
         'age': age,
         'weightLbs': weight,
         'heightInches': heightInches,
@@ -209,7 +212,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     if (!mounted) return;
 
-    // remove entire back stack so the user cannot go back to registration
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const MainNavigation()),
@@ -238,6 +240,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 32),
+
+              // name field
+              _buildTextField(
+                controller: _nameController,
+                hint: 'Your name',
+                errorText: _nameError,
+              ),
+              const SizedBox(height: 16),
 
               // age and gender row
               Row(
@@ -303,16 +313,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 12),
 
-              // goal options
               ..._goals.map((goal) => _buildGoalOption(goal)),
 
-              // goal error
               if (_goalError != null) ...[
                 const SizedBox(height: 4),
                 _errorRow(_goalError!),
               ],
 
-              // ── Weight loss / gain rate picker ─────────────────────────────
+              // weight loss / gain rate picker
               if (_goalNeedsRate) ...[
                 const SizedBox(height: 24),
                 Row(
@@ -325,7 +333,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: 8),
-                    // maintenance calorie preview badge
                     if (_maintenanceCalories != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -354,10 +361,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                ..._rateOptions.map((rate) =>
-                    _buildRateOption(rate)),
+                ..._rateOptions.map((rate) => _buildRateOption(rate)),
 
-                // rate error
                 if (_weightGoalRateError != null) ...[
                   const SizedBox(height: 4),
                   _errorRow(_weightGoalRateError!),
@@ -378,10 +383,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 12),
 
-              // fitness level options
               ..._fitnessLevels.map((level) => _buildFitnessLevelOption(level)),
 
-              // fitness level error
               if (_fitnessLevelError != null) ...[
                 const SizedBox(height: 4),
                 _errorRow(_fitnessLevelError!),
@@ -416,7 +419,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // ── Weight loss / gain rate card ──────────────────────────────────────────
+  // ── Rate option card ──────────────────────────────────────────────────────
 
   Widget _buildRateOption(Map<String, dynamic> rate) {
     final key = rate['key'] as String;
@@ -428,12 +431,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final adjustment = deficit ?? surplus ?? 0;
     final maintenance = _maintenanceCalories;
 
-    // calculate the actual calorie target for this option
     final int? targetCals = maintenance != null
         ? (isLoss ? maintenance - adjustment : maintenance + adjustment)
         : null;
 
-    // card accent colour
     const Color selectedColor = Color(0xFF378ADD);
     const Color extremeColor = Color(0xFFD85A30);
     final Color cardColor = isRecommended ? selectedColor : extremeColor;
@@ -441,7 +442,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     return GestureDetector(
       onTap: () => setState(() {
         _selectedWeightGoalRate = key;
-        _weightGoalRateError = null; // clear error when selected
+        _weightGoalRateError = null;
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
@@ -459,7 +460,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         ),
         child: Row(
           children: [
-            // radio icon
             Icon(
               isSelected
                   ? Icons.radio_button_checked
@@ -468,7 +468,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               size: 20,
             ),
             const SizedBox(width: 12),
-            // label + subtitle
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,7 +483,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      // recommended badge
                       if (isRecommended)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -526,13 +524,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   const SizedBox(height: 2),
                   Text(
                     rate['subtitle'] as String,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.grey),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
             ),
-            // calorie target preview
             if (targetCals != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -557,7 +553,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // fitness level card option
+  // ── Fitness level option ──────────────────────────────────────────────────
+
   Widget _buildFitnessLevelOption(Map<String, dynamic> level) {
     final label = level['label'] as String;
     final description = level['description'] as String;
@@ -568,7 +565,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     return GestureDetector(
       onTap: () => setState(() {
         _selectedFitnessLevel = label;
-        _fitnessLevelError = null; // clear error when selected
+        _fitnessLevelError = null;
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
@@ -627,14 +624,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // goal radio button option
+  // ── Goal option ───────────────────────────────────────────────────────────
+
   Widget _buildGoalOption(String goal) {
     final isSelected = _selectedGoal == goal;
     return GestureDetector(
       onTap: () => setState(() {
         _selectedGoal = goal;
-        _goalError = null; // clear error when selected
-        _selectedWeightGoalRate = null; // reset rate when goal changes
+        _goalError = null;
+        _selectedWeightGoalRate = null;
         _weightGoalRateError = null;
       }),
       child: Container(
@@ -664,8 +662,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               goal,
               style: TextStyle(
                 fontSize: 15,
-                fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 color: isSelected ? const Color(0xFFD85A30) : Colors.black87,
               ),
             ),
@@ -675,7 +672,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // shared error row
+  // ── Error row ─────────────────────────────────────────────────────────────
+
   Widget _errorRow(String message) {
     return Row(
       children: [
@@ -691,7 +689,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // reusable text field
+  // ── Text field ────────────────────────────────────────────────────────────
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -705,7 +704,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
-          onChanged: (_) => setState(() {}), // rebuild for live calorie preview
+          onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
@@ -751,7 +750,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // reusable dropdown
+  // ── Dropdown ──────────────────────────────────────────────────────────────
+
   Widget _buildDropdown({
     required String hint,
     required String? value,
@@ -786,13 +786,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               items: items
                   .map((item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(item),
-                      ))
+                value: item,
+                child: Text(item),
+              ))
                   .toList(),
               onChanged: (val) {
                 onChanged(val);
-                setState(() {}); // rebuild for live calorie preview
+                setState(() {});
               },
             ),
           ),
@@ -815,6 +815,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ],
     );
   }
+
+  // ── Height picker ─────────────────────────────────────────────────────────
 
   Widget _buildHeightPicker() {
     final hasError = _heightError != null;
@@ -874,9 +876,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // Scrollable height selection
   void _showHeightPicker() {
-    // temp values while scrolling
     int tempFeet = _selectedFeet;
     int tempInches = _selectedInches;
 
@@ -891,18 +891,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-
               const Text(
                 'Select Height',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-
                     // feet wheel
                     Column(
                       children: [
@@ -915,8 +912,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-
-                              // orange highlight behind selected item
                               Container(
                                 height: 40,
                                 decoration: BoxDecoration(
@@ -929,8 +924,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                   ),
                                 ),
                               ),
-
-                              // feet scroll wheel
                               ListWheelScrollView.useDelegate(
                                 itemExtent: 40,
                                 perspective: 0.005,
@@ -946,10 +939,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                   builder: (context, index) {
                                     final ft = index + 3;
                                     return Center(
-                                      child: Text(
-                                        '$ft\'',
-                                        style: const TextStyle(fontSize: 22),
-                                      ),
+                                      child: Text('$ft\'',
+                                          style:
+                                          const TextStyle(fontSize: 22)),
                                     );
                                   },
                                 ),
@@ -959,9 +951,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ),
                       ],
                     ),
-
                     const SizedBox(width: 32),
-
                     // inches wheel
                     Column(
                       children: [
@@ -974,8 +964,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-
-                              // orange highlight behind selected item
                               Container(
                                 height: 40,
                                 decoration: BoxDecoration(
@@ -988,8 +976,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                   ),
                                 ),
                               ),
-
-                              // inches scroll wheel
                               ListWheelScrollView.useDelegate(
                                 itemExtent: 40,
                                 perspective: 0.005,
@@ -1004,10 +990,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                   childCount: 12,
                                   builder: (context, index) {
                                     return Center(
-                                      child: Text(
-                                        '$index"',
-                                        style: const TextStyle(fontSize: 22),
-                                      ),
+                                      child: Text('$index"',
+                                          style:
+                                          const TextStyle(fontSize: 22)),
                                     );
                                   },
                                 ),
@@ -1020,8 +1005,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ],
                 ),
               ),
-
-              // confirm button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -1030,7 +1013,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       _selectedFeet = tempFeet;
                       _selectedInches = tempInches;
                       _heightSelected = true;
-                      _heightError = null; // clear error on confirm
+                      _heightError = null;
                     });
                     Navigator.pop(context);
                   },
@@ -1051,5 +1034,4 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       },
     );
   }
-
 }
