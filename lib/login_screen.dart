@@ -67,7 +67,22 @@ class _LoginScreenState extends State<LoginScreen> {
         // restore profile data into AppData
         final level = profile['fitnessLevel'] as String? ?? 'Beginner';
         AppData.fitnessLevel.value = level;
-        AppData.initDefaultSchedule(level);
+
+        // restore saved weekly schedule, or build default if none saved
+        final savedSchedule = profile['weekSchedule'] as Map<String, dynamic>?;
+        if (savedSchedule != null) {
+          AppData.scheduleFromMap(savedSchedule);
+        } else {
+          AppData.initDefaultSchedule(level);
+        }
+
+        // check if a new week has started — reset per-day level
+        // overrides back to the global fitness level
+        AppData.checkAndResetWeeklySchedule(
+          lastResetIso: profile['scheduleLastReset'] as String?,
+          globalLevel: level,
+        );
+
         AppData.calorieGoal.value =
             (profile['calorieGoal'] as num?)?.toInt() ?? 2200;
         AppData.bmi.value =

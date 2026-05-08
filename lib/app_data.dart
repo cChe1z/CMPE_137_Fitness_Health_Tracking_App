@@ -148,12 +148,14 @@ class AppData {
       ];
     });
     weekSchedule.value = schedule;
+    saveScheduleToFirestore();
   }
 
   static void addWorkoutBlock(int dayIndex, WorkoutBlock block) {
     final updated = Map<int, List<WorkoutBlock>>.from(weekSchedule.value);
     updated[dayIndex] = [...(updated[dayIndex] ?? []), block];
     weekSchedule.value = updated;
+    saveScheduleToFirestore();
   }
 
   static void removeWorkoutBlock(int dayIndex, String blockId) {
@@ -161,6 +163,7 @@ class AppData {
     updated[dayIndex] =
         (updated[dayIndex] ?? []).where((b) => b.id != blockId).toList();
     weekSchedule.value = updated;
+    saveScheduleToFirestore();
   }
 
   static void updateWorkoutBlock(int dayIndex, WorkoutBlock updatedBlock) {
@@ -169,6 +172,7 @@ class AppData {
         .map((b) => b.id == updatedBlock.id ? updatedBlock : b)
         .toList();
     weekSchedule.value = updated;
+    saveScheduleToFirestore();
   }
 
   /// Updates all workout blocks on a single day to the given level.
@@ -179,6 +183,7 @@ class AppData {
         .map((b) => b.copyWith(level: level))
         .toList();
     weekSchedule.value = updated;
+    saveScheduleToFirestore();
   }
 
   /// Updates every workout block across all days to the given level,
@@ -191,6 +196,96 @@ class AppData {
       updated[dayIndex] = blocks.map((b) => b.copyWith(level: level)).toList();
     });
     weekSchedule.value = updated;
+    saveScheduleToFirestore();
+  }
+
+  // ── Schedule persistence ─────────────────────────────────────────────────
+
+  /// Converts the current weekSchedule to a JSON-safe map for Firestore.
+  static Map<String, dynamic> scheduleToMap() {
+    final schedule = weekSchedule.value;
+    final map = <String, dynamic>{};
+    schedule.forEach((dayIndex, blocks) {
+      map['$dayIndex'] = blocks
+          .map((b) => {'focus': b.focus, 'level': b.level, 'id': b.id})
+          .toList();
+    });
+    return map;
+  }
+
+  /// Restores weekSchedule from a Firestore map.
+  static void scheduleFromMap(Map<String, dynamic> map) {
+    final schedule = _emptyWeek();
+    map.forEach((key, value) {
+      final dayIndex = int.tryParse(key);
+      if (dayIndex != null && value is List) {
+        schedule[dayIndex] = value.map<WorkoutBlock>((item) {
+          final m = item as Map<String, dynamic>;
+          return WorkoutBlock(
+            focus: m['focus'] as String? ?? 'Abs',
+            level: m['level'] as String? ?? 'Beginner',
+            id: m['id'] as String? ?? '${dayIndex}_default',
+          );
+        }).toList();
+      }
+    });
+    weekSchedule.value = schedule;
+  }
+
+  /// Saves the current schedule to Firestore for the logged-in user.
+  static void saveScheduleToFirestore() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DatabaseService().updateUserProfile(user.uid, {
+        'weekSchedule': scheduleToMap(),
+      });
+    }
+  }
+
+  // ── Weekly reset logic ───────────────────────────────────────────────────
+
+  /// Returns the most recent Monday at midnight for a given date.
+  static DateTime _startOfWeek(DateTime date) {
+    final d = DateTime(date.year, date.month, date.day);
+    return d.subtract(Duration(days: d.weekday - 1)); // weekday 1=Mon
+  }
+
+  /// Checks if a new week has started since the last reset.
+  /// If so, resets all workout blocks to the global fitness level
+  /// while keeping the same focus/muscle groups, and saves to Firestore.
+  static void checkAndResetWeeklySchedule({
+    required String? lastResetIso,
+    required String globalLevel,
+  }) {
+    final now = DateTime.now();
+    final currentWeekStart = _startOfWeek(now);
+
+    // parse the last reset date
+    DateTime? lastReset;
+    if (lastResetIso != null) {
+      lastReset = DateTime.tryParse(lastResetIso);
+    }
+
+    // if never reset, or last reset was before this Monday → reset
+    if (lastReset == null || lastReset.isBefore(currentWeekStart)) {
+      // reset all blocks to the global level, keep the focus groups
+      final current = weekSchedule.value;
+      final updated = Map<int, List<WorkoutBlock>>.from(current);
+      updated.forEach((dayIndex, blocks) {
+        updated[dayIndex] =
+            blocks.map((b) => b.copyWith(level: globalLevel)).toList();
+      });
+      weekSchedule.value = updated;
+
+      // save the reset schedule and the new reset timestamp
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        DatabaseService().updateUserProfile(user.uid, {
+          'weekSchedule': scheduleToMap(),
+          'scheduleLastReset': currentWeekStart.toIso8601String(),
+        });
+      }
+    }
   }
 
   // ── Meal helpers ─────────────────────────────────────────────────────────
