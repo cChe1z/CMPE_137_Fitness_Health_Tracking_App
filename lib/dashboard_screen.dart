@@ -5,7 +5,8 @@ import 'profile_screen.dart';
 import 'app_data.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final void Function(int)? onNavigate;
+  const DashboardScreen({super.key, this.onNavigate});
 
   String _bmiCategory(double bmi) {
     if (bmi == 0) return 'Not calculated';
@@ -88,12 +89,7 @@ class DashboardScreen extends StatelessWidget {
                               _TodayWorkoutCard(
                                 todayIndex: todayIndex,
                                 todayBlocks: todayBlocks,
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const FitnessPlanScreen(),
-                                  ),
-                                ),
+                                onTap: () => onNavigate?.call(2),
                               ),
 
                               const SizedBox(height: 20),
@@ -181,15 +177,7 @@ class DashboardScreen extends StatelessWidget {
                                 title: 'Calorie Logger',
                                 subtitle: 'Log meals and track calories',
                                 color: const Color(0xFFD85A30),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const MealTrackingScreen(),
-                                    ),
-                                  );
-                                },
+                                onTap: () => onNavigate?.call(1),
                               ),
 
                               // fitness plan card (enhanced)
@@ -201,14 +189,7 @@ class DashboardScreen extends StatelessWidget {
                                 title: 'Profile',
                                 subtitle: 'View and update your profile',
                                 color: const Color(0xFF378ADD),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ProfileScreen(),
-                                    ),
-                                  );
-                                },
+                                onTap: () => onNavigate?.call(3),
                               ),
                             ],
                           ),
@@ -228,12 +209,7 @@ class DashboardScreen extends StatelessWidget {
   // enhanced fitness plan card
   Widget _fitnessPlanCard(BuildContext context, WeekSchedule schedule) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const FitnessPlanScreen()),
-        );
-      },
+      onTap: () => onNavigate?.call(2),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(18),

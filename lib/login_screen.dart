@@ -5,6 +5,7 @@ import 'profile_setup_screen.dart';
 import 'app_data.dart';
 import 'services/auth_service.dart';
 import 'services/database_service.dart';
+import 'main_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -109,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
         );
       }
     } else {

@@ -997,8 +997,8 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
   @override
   void initState() {
     super.initState();
-    final weekday = DateTime.now().weekday; // 1=Mon … 7=Sun
-    _selectedDayIndex = weekday - 1;       // 0=Mon … 6=Sun
+    final weekday = DateTime.now().weekday;
+    _selectedDayIndex = weekday - 1;
 
     _animController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 300));
@@ -1053,7 +1053,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                     style: TextStyle(color: Colors.grey, fontSize: 13)),
                 const SizedBox(height: 20),
 
-                // Focus options grid
                 const Text('Muscle group',
                     style: TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w600)),
@@ -1104,7 +1103,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
 
                 const SizedBox(height: 20),
 
-                // Level options
                 const Text('Difficulty',
                     style: TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w600)),
@@ -1122,7 +1120,7 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                           margin: EdgeInsets.only(
                               right: lvl != kLevels.last ? 8 : 0),
                           padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? c.withValues(alpha: 0.1)
@@ -1158,14 +1156,14 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                     onPressed: selectedFocus == null
                         ? null
                         : () {
-                            final block = WorkoutBlock(
-                              focus: selectedFocus!,
-                              level: selectedLevel,
-                              id: '${dayIndex}_${selectedFocus}_${DateTime.now().millisecondsSinceEpoch}',
-                            );
-                            AppData.addWorkoutBlock(dayIndex, block);
-                            Navigator.pop(ctx);
-                          },
+                      final block = WorkoutBlock(
+                        focus: selectedFocus!,
+                        level: selectedLevel,
+                        id: '${dayIndex}_${selectedFocus}_${DateTime.now().millisecondsSinceEpoch}',
+                      );
+                      AppData.addWorkoutBlock(dayIndex, block);
+                      Navigator.pop(ctx);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF378ADD),
                       foregroundColor: Colors.white,
@@ -1240,8 +1238,8 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                             lvl == 'Beginner'
                                 ? Icons.star_outline
                                 : lvl == 'Intermediate'
-                                    ? Icons.star_half
-                                    : Icons.star,
+                                ? Icons.star_half
+                                : Icons.star,
                             color: c,
                             size: 20,
                           ),
@@ -1275,7 +1273,7 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                       backgroundColor: const Color(0xFF378ADD),
                       foregroundColor: Colors.white,
                       padding:
-                          const EdgeInsets.symmetric(vertical: 14),
+                      const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
@@ -1292,9 +1290,9 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
     );
   }
 
-  // ── Global level picker ────────────────────────────────────────────────────
+  // ── Day-level picker — only affects the selected day ──────────────────────
 
-  void _showGlobalLevelSheet() {
+  void _showDayLevelSheet() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -1302,78 +1300,15 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
       ),
       builder: (_) => _LevelPickerSheet(
         current: AppData.fitnessLevel.value,
+        title: 'Change level — ${kDayNames[_selectedDayIndex]}',
+        subtitle: 'Updates all workouts on ${kDayNames[_selectedDayIndex]} only.',
         onPicked: (level) {
           Navigator.pop(context);
-
-          // check if any blocks already exist with a different level
-          final schedule = AppData.weekSchedule.value;
-          final hasExistingBlocks = schedule.values
-              .any((blocks) => blocks.any((b) => b.level != level));
-
-          if (hasExistingBlocks) {
-            // ask whether to update all existing blocks too
-            showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                title: const Text('Update all workouts?',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                content: Text(
-                  'Do you want to change every workout in your plan to $level, '
-                  'or only apply this to new workouts you add?',
-                ),
-                actions: [
-                  // only new workouts
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      AppData.fitnessLevel.value = level;
-                      setState(() {});
-                    },
-                    child: const Text('New only',
-                        style: TextStyle(color: Colors.grey)),
-                  ),
-                  // update everything
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      AppData.fitnessLevel.value = level;
-                      // update every existing block in the schedule
-                      _applyLevelToAllBlocks(level);
-                      setState(() {});
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF378ADD),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Update all'),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            // no existing blocks — just set the level silently
-            AppData.fitnessLevel.value = level;
-            setState(() {});
-          }
+          AppData.applyLevelToDay(_selectedDayIndex, level);
+          setState(() {});
         },
       ),
     );
-  }
-
-  // Updates every WorkoutBlock in the schedule to the given level
-  void _applyLevelToAllBlocks(String level) {
-    final current = AppData.weekSchedule.value;
-    final updated = Map<int, List<WorkoutBlock>>.from(current);
-    updated.forEach((dayIndex, blocks) {
-      updated[dayIndex] = blocks
-          .map((b) => b.copyWith(level: level))
-          .toList();
-    });
-    AppData.weekSchedule.value = updated;
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -1415,9 +1350,9 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                   style: const TextStyle(color: Color(0xFF378ADD)),
                 ),
               ),
-              // Global level
+              // Day-level picker (only changes the selected day)
               TextButton.icon(
-                onPressed: _showGlobalLevelSheet,
+                onPressed: _showDayLevelSheet,
                 icon: const Icon(Icons.tune,
                     color: Colors.grey, size: 18),
                 label: Text(
@@ -1430,10 +1365,7 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
           body: SafeArea(
             child: Column(
               children: [
-                // ── Day tab strip ─────────────────────────────────────
                 _buildDayStrip(schedule),
-
-                // ── Content ───────────────────────────────────────────
                 Expanded(
                   child: FadeTransition(
                     opacity: _fadeAnim,
@@ -1468,7 +1400,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
           final isWeekend = index == 5 || index == 6;
           final hasWorkout = blocks.isNotEmpty;
 
-          // Pick accent color: first block's focus color, or grey for rest
           final accentColor = hasWorkout
               ? focusColor(blocks.first.focus)
               : Colors.grey.shade300;
@@ -1497,7 +1428,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                     ),
                   ),
                   const SizedBox(height: 3),
-                  // Dot indicator: filled = has workout
                   Container(
                     width: 6,
                     height: 6,
@@ -1506,10 +1436,10 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                       color: isActive
                           ? Colors.white.withValues(alpha: 0.7)
                           : hasWorkout
-                              ? accentColor
-                              : isWeekend
-                                  ? Colors.grey.shade300
-                                  : Colors.grey.shade300,
+                          ? accentColor
+                          : isWeekend
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade300,
                     ),
                   ),
                 ],
@@ -1532,7 +1462,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       children: [
-        // Day header
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Row(
@@ -1549,8 +1478,8 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                     Text(
                       isRestDay
                           ? (isWeekend
-                              ? 'Rest day'
-                              : 'No workouts — tap + to add one')
+                          ? 'Rest day'
+                          : 'No workouts — tap + to add one')
                           : '${blocks.length} workout${blocks.length > 1 ? 's' : ''} planned',
                       style: const TextStyle(
                           color: Colors.grey, fontSize: 13),
@@ -1558,7 +1487,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                   ],
                 ),
               ),
-              // Add button always visible
               GestureDetector(
                 onTap: () => _showAddWorkoutSheet(dayIndex),
                 child: Container(
@@ -1576,14 +1504,13 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
           ),
         ),
 
-        // Rest day placeholder
         if (isRestDay)
           _buildRestCard(isWeekend: isWeekend)
         else
           ...blocks.map((block) => _buildWorkoutBlock(
-                dayIndex: dayIndex,
-                block: block,
-              )),
+            dayIndex: dayIndex,
+            block: block,
+          )),
 
         const SizedBox(height: 24),
       ],
@@ -1645,18 +1572,16 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
         borderRadius: BorderRadius.circular(18),
         border: _editMode
             ? Border.all(
-                color: const Color(0xFFD85A30).withValues(alpha: 0.4),
-                width: 1.5)
+            color: const Color(0xFFD85A30).withValues(alpha: 0.4),
+            width: 1.5)
             : null,
       ),
       child: Column(
         children: [
-          // Block header
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
-                // Focus icon
                 Container(
                   width: 42,
                   height: 42,
@@ -1679,11 +1604,10 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                       const SizedBox(height: 3),
                       Row(
                         children: [
-                          // Level chip — tappable in edit mode
                           GestureDetector(
                             onTap: _editMode
                                 ? () => _showChangeDifficultySheet(
-                                    dayIndex, block)
+                                dayIndex, block)
                                 : null,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -1693,9 +1617,9 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                                 borderRadius: BorderRadius.circular(20),
                                 border: _editMode
                                     ? Border.all(
-                                        color: lvlColor
-                                            .withValues(alpha: 0.4),
-                                        width: 1)
+                                    color: lvlColor
+                                        .withValues(alpha: 0.4),
+                                    width: 1)
                                     : null,
                               ),
                               child: Row(
@@ -1724,7 +1648,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                     ],
                   ),
                 ),
-                // Edit mode: delete button. Normal mode: nothing.
                 if (_editMode)
                   GestureDetector(
                     onTap: () => AppData.removeWorkoutBlock(
@@ -1745,7 +1668,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
             ),
           ),
 
-          // Divider
           Padding(
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 12),
@@ -1753,17 +1675,16 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                 color: color.withValues(alpha: 0.2), height: 1),
           ),
 
-          // Exercise list (collapsed in edit mode to keep things tidy)
           if (!_editMode)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               child: Column(
                 children: exercises
                     .map((ex) => _ExerciseRow(
-                          exercise: ex,
-                          index: exercises.indexOf(ex),
-                          accentColor: color,
-                        ))
+                  exercise: ex,
+                  index: exercises.indexOf(ex),
+                  accentColor: color,
+                ))
                     .toList(),
               ),
             )
@@ -1809,7 +1730,7 @@ class _ExerciseRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Theme(
       data:
-          Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         dense: true,
         tilePadding: const EdgeInsets.symmetric(horizontal: 4),
@@ -1838,7 +1759,6 @@ class _ExerciseRow extends StatelessWidget {
           ),
         ),
         children: [
-          // Numbered instructions list
           Container(
             width: double.infinity,
             margin: const EdgeInsets.fromLTRB(4, 0, 4, 8),
@@ -1854,47 +1774,45 @@ class _ExerciseRow extends StatelessWidget {
                   .entries
                   .map(
                     (entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Step number bubble
-                          Container(
-                            width: 20,
-                            height: 20,
-                            margin: const EdgeInsets.only(
-                                right: 8, top: 1),
-                            decoration: BoxDecoration(
-                              color: accentColor
-                                  .withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${entry.key + 1}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: accentColor,
-                                ),
-                              ),
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        margin: const EdgeInsets.only(
+                            right: 8, top: 1),
+                        decoration: BoxDecoration(
+                          color: accentColor
+                              .withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${entry.key + 1}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: accentColor,
                             ),
                           ),
-                          // Step text
-                          Expanded(
-                            child: Text(
-                              entry.value,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade700,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  )
+                      Expanded(
+                        child: Text(
+                          entry.value,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
                   .toList(),
             ),
           ),
@@ -1919,14 +1837,20 @@ class _ExerciseRow extends StatelessWidget {
   }
 }
 
-// ─── Global level picker sheet ─────────────────────────────────────────────────
+// ─── Reusable level picker sheet ───────────────────────────────────────────────
 
 class _LevelPickerSheet extends StatelessWidget {
   final String? current;
+  final String title;
+  final String subtitle;
   final ValueChanged<String> onPicked;
 
-  const _LevelPickerSheet(
-      {required this.current, required this.onPicked});
+  const _LevelPickerSheet({
+    required this.current,
+    required this.title,
+    required this.subtitle,
+    required this.onPicked,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1942,13 +1866,12 @@ class _LevelPickerSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Default level',
-              style: TextStyle(
+          Text(title,
+              style: const TextStyle(
                   fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          const Text(
-              'Sets the default for new workouts you add. Existing blocks keep their own level.',
-              style: TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(subtitle,
+              style: const TextStyle(color: Colors.grey, fontSize: 13)),
           const SizedBox(height: 20),
           ...levels.map((l) {
             final isCurrent = current == l['label'];

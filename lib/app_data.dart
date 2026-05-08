@@ -10,7 +10,7 @@ class Meal {
   final int protein;
   final int carbs;
   final int fats;
-  final String? firestoreId; // set when loaded back from Firestore
+  final String? firestoreId;
 
   Meal({
     required this.name,
@@ -24,12 +24,10 @@ class Meal {
 
 // ─── Workout schedule models ───────────────────────────────────────────────────
 
-/// A single workout block assigned to a day — has its own focus + difficulty
-/// so users can mix-and-match independently of their global level.
 class WorkoutBlock {
-  final String focus;   // 'Abs', 'Arms', 'Chest', 'Legs', 'Shoulders'
-  final String level;  // 'Beginner', 'Intermediate', 'Advanced'
-  final String id;     // unique key so we can remove specific blocks
+  final String focus;
+  final String level;
+  final String id;
 
   WorkoutBlock({
     required this.focus,
@@ -46,19 +44,16 @@ class WorkoutBlock {
   }
 }
 
-/// The full 7-day schedule: maps day index (0=Mon … 6=Sun) to a list of
-/// WorkoutBlocks. An empty list means rest day.
 typedef WeekSchedule = Map<int, List<WorkoutBlock>>;
 
 // ─── Weight loss / gain rate constants ────────────────────────────────────────
 
-/// Labels for the rate options shown in setup and profile screens.
 const List<Map<String, dynamic>> kWeightLossRates = [
   {
     'key': 'Mild Weight Loss',
     'label': 'Mild weight loss',
     'subtitle': '0.5 lb / week',
-    'deficit': 250,       // kcal deficit per day
+    'deficit': 250,
     'recommended': true,
   },
   {
@@ -109,13 +104,11 @@ class AppData {
   static final ValueNotifier<int> calorieGoal = ValueNotifier<int>(2200);
   static final ValueNotifier<double> bmi = ValueNotifier<double>(0);
 
-  // Persists the chosen fitness level across the session
   static final ValueNotifier<String?> fitnessLevel =
-      ValueNotifier<String?>(null);
+  ValueNotifier<String?>(null);
 
-  // The customisable 7-day workout schedule
   static final ValueNotifier<WeekSchedule> weekSchedule =
-      ValueNotifier<WeekSchedule>(_emptyWeek());
+  ValueNotifier<WeekSchedule>(_emptyWeek());
 
   // ── Profile fields ────────────────────────────────────────────────────────
 
@@ -128,16 +121,14 @@ class AppData {
   static final ValueNotifier<String> goal = ValueNotifier<String>('');
   static final ValueNotifier<String> activityLevel = ValueNotifier<String>('');
 
-  // The selected weight loss/gain rate key — e.g. 'Mild Weight Loss'
   static final ValueNotifier<String?> weightGoalRate =
-      ValueNotifier<String?>(null);
+  ValueNotifier<String?>(null);
 
   // ── Schedule helpers ─────────────────────────────────────────────────────
 
   static WeekSchedule _emptyWeek() =>
       {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []};
 
-  // Called after sign-up to seed the default Mon–Fri plan
   static void initDefaultSchedule(String level) {
     final defaults = {
       0: 'Abs',
@@ -180,6 +171,28 @@ class AppData {
     weekSchedule.value = updated;
   }
 
+  /// Updates all workout blocks on a single day to the given level.
+  static void applyLevelToDay(int dayIndex, String level) {
+    final current = weekSchedule.value;
+    final updated = Map<int, List<WorkoutBlock>>.from(current);
+    updated[dayIndex] = (updated[dayIndex] ?? [])
+        .map((b) => b.copyWith(level: level))
+        .toList();
+    weekSchedule.value = updated;
+  }
+
+  /// Updates every workout block across all days to the given level,
+  /// and also updates the global fitnessLevel default.
+  static void applyLevelToAllBlocks(String level) {
+    fitnessLevel.value = level;
+    final current = weekSchedule.value;
+    final updated = Map<int, List<WorkoutBlock>>.from(current);
+    updated.forEach((dayIndex, blocks) {
+      updated[dayIndex] = blocks.map((b) => b.copyWith(level: level)).toList();
+    });
+    weekSchedule.value = updated;
+  }
+
   // ── Meal helpers ─────────────────────────────────────────────────────────
 
   static int get totalCalories {
@@ -194,7 +207,6 @@ class AppData {
           protein: protein, carbs: carbs, fats: fats),
     ];
 
-    // persist to Firestore so meals survive logout/login
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       DatabaseService().logMeal({
@@ -215,7 +227,6 @@ class AppData {
     updatedMeals.removeAt(index);
     meals.value = updatedMeals;
 
-    // remove from Firestore if it has a stored id
     if (meal.firestoreId != null) {
       DatabaseService().deleteMeal(meal.firestoreId!);
     }
@@ -230,8 +241,6 @@ class AppData {
     return (weightLbs / (heightInches * heightInches)) * 703;
   }
 
-  /// Calculates TDEE (maintenance calories) with no deficit/surplus applied.
-  /// Use this to show the breakdown of options to the user.
   static int calculateMaintenance({
     required int age,
     required double weightLbs,
@@ -249,7 +258,6 @@ class AppData {
     } else if (gender == 'Female') {
       bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
     } else {
-      // neutral average
       bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 78;
     }
 
@@ -289,15 +297,12 @@ class AppData {
       activityLevel: activityLevel,
     );
 
-    // apply the right deficit or surplus based on the selected rate
     if (weightGoalRate != null) {
-      // check weight loss rates
       for (final rate in kWeightLossRates) {
         if (rate['key'] == weightGoalRate) {
           return maintenance - (rate['deficit'] as int);
         }
       }
-      // check weight gain rates
       for (final rate in kWeightGainRates) {
         if (rate['key'] == weightGoalRate) {
           return maintenance + (rate['surplus'] as int);
@@ -305,17 +310,15 @@ class AppData {
       }
     }
 
-    // fallback to legacy goal-based logic if no specific rate is set
     if (goal == 'Weight Loss') {
       return maintenance - 500;
     } else if (goal == 'Bulk') {
       return maintenance + 300;
     }
 
-    return maintenance; // Maintenance
+    return maintenance;
   }
 
-  // loads today's meals from Firestore and populates AppData.meals
   static Future<void> loadTodaysMeals(String userId) async {
     final data = await DatabaseService().getMealsByDate(userId, DateTime.now());
     meals.value = data.map((m) => Meal(
@@ -352,7 +355,6 @@ class AppData {
       weightGoalRate: weightGoalRate,
     );
 
-    // populate profile fields for the profile screen
     AppData.goal.value = goal;
     AppData.activityLevel.value = activityLevel;
     AppData.currentWeight.value = weightLbs;
@@ -361,7 +363,6 @@ class AppData {
     AppData.heightInches.value = heightInches;
     AppData.weightGoalRate.value = weightGoalRate;
 
-    // target weight defaults to current - 10 for weight loss, same for others
     if (goal == 'Weight Loss') {
       AppData.targetWeight.value = weightLbs - 10;
     } else {

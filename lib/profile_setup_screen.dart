@@ -3,6 +3,7 @@ import 'dashboard_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'services/database_service.dart';
 import 'app_data.dart';
+import 'main_navigation.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -211,8 +212,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     // remove entire back stack so the user cannot go back to registration
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      (route) => false,
+      MaterialPageRoute(builder: (_) => const MainNavigation()),
+          (route) => false,
     );
   }
 
