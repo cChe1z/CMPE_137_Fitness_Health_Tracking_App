@@ -20,6 +20,10 @@ class DatabaseService {
     await _db.collection('meal_logs').add(mealData);
   }
 
+  Future<void> deleteMeal(String mealId) async {
+    await _db.collection('meal_logs').doc(mealId).delete();
+  }
+
   Future<List<Map<String, dynamic>>> getMealsByDate(String userId, DateTime date) async {
     DateTime startOfDay = DateTime(date.year, date.month, date.day);
     DateTime endOfDay = startOfDay.add(Duration(days: 1));
