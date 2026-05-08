@@ -21,6 +21,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   String? _selectedGender;
   String? _selectedActivityLevel;
   String? _selectedGoal;
+  String? _selectedWeightGoalRate; // NEW — e.g. 'Mild Weight Loss'
+  String? _selectedFitnessLevel;
 
   // errors
   String? _ageError;
@@ -29,6 +31,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   String? _genderError;
   String? _activityError;
   String? _goalError;
+  String? _weightGoalRateError; // NEW
+  String? _fitnessLevelError;
 
   final List<String> _genders = ['Male', 'Female', 'Prefer not to say'];
   final List<String> _activityLevels = [
@@ -39,9 +43,55 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   ];
   final List<String> _goals = [
     'Weight Loss',
-    'Muscle Gain',
+    'Bulk',
     'Maintenance',
   ];
+
+  static const List<Map<String, dynamic>> _fitnessLevels = [
+    {
+      'label': 'Beginner',
+      'description': 'New to working out or getting back into it.',
+      'icon': Icons.star_outline,
+      'color': Color(0xFF2E7D32),
+    },
+    {
+      'label': 'Intermediate',
+      'description': 'Consistent training for a few months or more.',
+      'icon': Icons.star_half,
+      'color': Color(0xFF378ADD),
+    },
+    {
+      'label': 'Advanced',
+      'description': 'Over a year of structured training.',
+      'icon': Icons.star,
+      'color': Color(0xFFD85A30),
+    },
+  ];
+
+  // whether the selected goal requires a rate picker
+  bool get _goalNeedsRate =>
+      _selectedGoal == 'Weight Loss' || _selectedGoal == 'Bulk';
+
+  // the rate options to show based on the selected goal
+  List<Map<String, dynamic>> get _rateOptions =>
+      _selectedGoal == 'Weight Loss' ? kWeightLossRates : kWeightGainRates;
+
+  // live maintenance calories for calorie preview — only when enough data is entered
+  int? get _maintenanceCalories {
+    final age = int.tryParse(_ageController.text.trim());
+    final weight = double.tryParse(_weightController.text.trim());
+    if (age == null || weight == null || !_heightSelected ||
+        _selectedGender == null || _selectedActivityLevel == null) {
+      return null;
+    }
+    return AppData.calculateMaintenance(
+      age: age,
+      weightLbs: weight,
+      heightInches: (_selectedFeet * 12 + _selectedInches).toDouble(),
+      gender: _selectedGender!,
+      activityLevel: _selectedActivityLevel!,
+    );
+  }
 
   @override
   void dispose() {
@@ -59,6 +109,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       _genderError = null;
       _activityError = null;
       _goalError = null;
+      _weightGoalRateError = null;
+      _fitnessLevelError = null;
     });
 
     bool hasError = false;
@@ -105,6 +157,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       hasError = true;
     }
 
+    // rate validation — only required if goal needs one
+    if (_goalNeedsRate && _selectedWeightGoalRate == null) {
+      setState(() =>
+          _weightGoalRateError = 'Please select a rate');
+      hasError = true;
+    }
+
+    if (_selectedFitnessLevel == null) {
+      setState(() => _fitnessLevelError = 'Please select your fitness level');
+      hasError = true;
+    }
+
     if (hasError) return;
 
     final heightInches = (_selectedFeet * 12 + _selectedInches).toDouble();
@@ -117,7 +181,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       gender: _selectedGender!,
       activityLevel: _selectedActivityLevel!,
       goal: _selectedGoal!,
+      weightGoalRate: _goalNeedsRate ? _selectedWeightGoalRate : null,
     );
+
+    // save chosen fitness level and seed the default 7-day schedule
+    AppData.fitnessLevel.value = _selectedFitnessLevel;
+    AppData.initDefaultSchedule(_selectedFitnessLevel!);
 
     // save to Firestore
     final user = FirebaseAuth.instance.currentUser;
@@ -129,16 +198,21 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         'gender': _selectedGender,
         'activityLevel': _selectedActivityLevel,
         'goal': _selectedGoal,
+        'weightGoalRate': _goalNeedsRate ? _selectedWeightGoalRate : null,
+        'fitnessLevel': _selectedFitnessLevel,
         'calorieGoal': AppData.calorieGoal.value,
         'bmi': AppData.bmi.value,
+        'targetWeight': AppData.targetWeight.value,
       });
     }
 
     if (!mounted) return;
 
-    Navigator.pushReplacement(
+    // remove entire back stack so the user cannot go back to registration
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      (route) => false,
     );
   }
 
@@ -234,18 +308,82 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               // goal error
               if (_goalError != null) ...[
                 const SizedBox(height: 4),
+                _errorRow(_goalError!),
+              ],
+
+              // ── Weight loss / gain rate picker ─────────────────────────────
+              if (_goalNeedsRate) ...[
+                const SizedBox(height: 24),
                 Row(
                   children: [
-                    const Icon(Icons.error_outline,
-                        color: Color(0xFFD85A30), size: 14),
-                    const SizedBox(width: 4),
                     Text(
-                      _goalError!,
+                      _selectedGoal == 'Weight Loss'
+                          ? 'Weight loss rate'
+                          : 'Bulk rate',
                       style: const TextStyle(
-                          color: Color(0xFFD85A30), fontSize: 12),
+                          fontSize: 16, fontWeight: FontWeight.w600),
                     ),
+                    const SizedBox(width: 8),
+                    // maintenance calorie preview badge
+                    if (_maintenanceCalories != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3F2FD),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Maintain: $_maintenanceCalories cal',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF185FA5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  _selectedGoal == 'Weight Loss'
+                      ? 'Choose how fast you want to lose weight.'
+                      : 'Choose how fast you want to build muscle.',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+
+                ..._rateOptions.map((rate) =>
+                    _buildRateOption(rate)),
+
+                // rate error
+                if (_weightGoalRateError != null) ...[
+                  const SizedBox(height: 4),
+                  _errorRow(_weightGoalRateError!),
+                ],
+              ],
+
+              const SizedBox(height: 28),
+
+              // fitness level section
+              const Text(
+                'Fitness level',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Sets the difficulty of your workout plan.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+
+              // fitness level options
+              ..._fitnessLevels.map((level) => _buildFitnessLevelOption(level)),
+
+              // fitness level error
+              if (_fitnessLevelError != null) ...[
+                const SizedBox(height: 4),
+                _errorRow(_fitnessLevelError!),
               ],
               const SizedBox(height: 32),
 
@@ -277,6 +415,217 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
+  // ── Weight loss / gain rate card ──────────────────────────────────────────
+
+  Widget _buildRateOption(Map<String, dynamic> rate) {
+    final key = rate['key'] as String;
+    final isSelected = _selectedWeightGoalRate == key;
+    final isRecommended = rate['recommended'] as bool;
+    final isLoss = _selectedGoal == 'Weight Loss';
+    final deficit = rate['deficit'] as int?;
+    final surplus = rate['surplus'] as int?;
+    final adjustment = deficit ?? surplus ?? 0;
+    final maintenance = _maintenanceCalories;
+
+    // calculate the actual calorie target for this option
+    final int? targetCals = maintenance != null
+        ? (isLoss ? maintenance - adjustment : maintenance + adjustment)
+        : null;
+
+    // card accent colour
+    const Color selectedColor = Color(0xFF378ADD);
+    const Color extremeColor = Color(0xFFD85A30);
+    final Color cardColor = isRecommended ? selectedColor : extremeColor;
+
+    return GestureDetector(
+      onTap: () => setState(() {
+        _selectedWeightGoalRate = key;
+        _weightGoalRateError = null; // clear error when selected
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? cardColor.withValues(alpha: 0.07)
+              : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? cardColor : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            // radio icon
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_off,
+              color: isSelected ? cardColor : Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            // label + subtitle
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        rate['label'] as String,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? cardColor : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // recommended badge
+                      if (isRecommended)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32)
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            '✓ Recommended',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFF2E7D32),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD85A30)
+                                .withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            '⚠ Hard to maintain',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFFD85A30),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    rate['subtitle'] as String,
+                    style: const TextStyle(
+                        fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            // calorie target preview
+            if (targetCals != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$targetCals',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? cardColor : Colors.black87,
+                    ),
+                  ),
+                  const Text(
+                    'cal/day',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // fitness level card option
+  Widget _buildFitnessLevelOption(Map<String, dynamic> level) {
+    final label = level['label'] as String;
+    final description = level['description'] as String;
+    final icon = level['icon'] as IconData;
+    final color = level['color'] as Color;
+    final isSelected = _selectedFitnessLevel == label;
+
+    return GestureDetector(
+      onTap: () => setState(() {
+        _selectedFitnessLevel = label;
+        _fitnessLevelError = null; // clear error when selected
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.07)
+              : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? color : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: isSelected ? 1.0 : 0.0,
+              child: Icon(Icons.check_circle, color: color, size: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // goal radio button option
   Widget _buildGoalOption(String goal) {
     final isSelected = _selectedGoal == goal;
@@ -284,6 +633,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       onTap: () => setState(() {
         _selectedGoal = goal;
         _goalError = null; // clear error when selected
+        _selectedWeightGoalRate = null; // reset rate when goal changes
+        _weightGoalRateError = null;
       }),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -313,13 +664,29 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight:
-                isSelected ? FontWeight.w600 : FontWeight.normal,
+                    isSelected ? FontWeight.w600 : FontWeight.normal,
                 color: isSelected ? const Color(0xFFD85A30) : Colors.black87,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // shared error row
+  Widget _errorRow(String message) {
+    return Row(
+      children: [
+        const Icon(Icons.error_outline, color: Color(0xFFD85A30), size: 14),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            message,
+            style: const TextStyle(color: Color(0xFFD85A30), fontSize: 12),
+          ),
+        ),
+      ],
     );
   }
 
@@ -337,6 +704,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          onChanged: (_) => setState(() {}), // rebuild for live calorie preview
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
@@ -417,11 +785,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               items: items
                   .map((item) => DropdownMenuItem(
-                value: item,
-                child: Text(item),
-              ))
+                        value: item,
+                        child: Text(item),
+                      ))
                   .toList(),
-              onChanged: onChanged,
+              onChanged: (val) {
+                onChanged(val);
+                setState(() {}); // rebuild for live calorie preview
+              },
             ),
           ),
         ),
@@ -548,7 +919,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               Container(
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFD85A30).withValues(alpha: 0.15),
+                                  color: const Color(0xFFD85A30)
+                                      .withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: const Color(0xFFD85A30),
@@ -606,7 +978,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               Container(
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFD85A30).withValues(alpha: 0.15),
+                                  color: const Color(0xFFD85A30)
+                                      .withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: const Color(0xFFD85A30),
