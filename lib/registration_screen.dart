@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'profile_setup_screen.dart';
 import 'services/auth_service.dart';
+import 'app_data.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -73,6 +74,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!mounted) return;
 
     if (user != null) {
+      // clear any meals left over from a previous session
+      AppData.meals.value = [];
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),

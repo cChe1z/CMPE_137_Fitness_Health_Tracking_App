@@ -14,7 +14,7 @@ class NutritionService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         List<dynamic> foods = data['foods'] ?? [];
-        
+
         return foods.map((food) {
           var nutrients = food['foodNutrients'] ?? [];
           double calories = 0;
@@ -22,15 +22,32 @@ class NutritionService {
           double carbs = 0;
           double fats = 0;
 
-          for (var nutrient in nutrients) {
-            String name = nutrient['nutrientName'] ?? '';
-            double value = (nutrient['value'] ?? 0).toDouble();
+          // The USDA API can return multiple Energy entries (kcal and kJ).
+          // We specifically look for the kcal entry to avoid inflated values.
+          double? kcalValue;
+          double? genericEnergyValue;
 
-            if (name.contains('Energy')) calories = value;
+          for (var nutrient in nutrients) {
+            final String name = nutrient['nutrientName'] ?? '';
+            final String unit = nutrient['unitName'] ?? '';
+            final double value = (nutrient['value'] ?? 0).toDouble();
+
+            if (name.contains('Energy')) {
+              if (unit.toLowerCase() == 'kcal') {
+                // prefer kcal specifically
+                kcalValue = value;
+              } else if (unit.toLowerCase() != 'kj') {
+                // fallback: anything that isn't kJ
+                genericEnergyValue = value;
+              }
+            }
             if (name.contains('Protein')) protein = value;
             if (name.contains('Carbohydrate')) carbs = value;
             if (name.contains('Total lipid')) fats = value;
           }
+
+          // use kcal if found, otherwise fall back to generic, otherwise 0
+          calories = kcalValue ?? genericEnergyValue ?? 0;
 
           return {
             'name': food['description'] ?? 'Unknown',

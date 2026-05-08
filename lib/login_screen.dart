@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'registration_screen.dart';
 import 'dashboard_screen.dart';
+import 'profile_setup_screen.dart';
+import 'app_data.dart';
 import 'services/auth_service.dart';
+import 'services/database_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -54,10 +57,61 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (user != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
+      // check if this user has already completed profile setup
+      final profile = await DatabaseService().getUserProfile(user.uid);
+      if (!mounted) return;
+
+      if (profile == null) {
+        // no profile found — send to setup screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+        );
+      } else {
+        // profile exists — restore their saved data into AppData
+        final level = profile['fitnessLevel'] as String? ?? 'Beginner';
+        AppData.fitnessLevel.value = level;
+        AppData.initDefaultSchedule(level);
+        AppData.calorieGoal.value =
+            (profile['calorieGoal'] as num?)?.toInt() ?? 2200;
+        AppData.bmi.value =
+            (profile['bmi'] as num?)?.toDouble() ?? 0.0;
+
+        // restore profile screen fields
+        AppData.age.value =
+            (profile['age'] as num?)?.toInt() ?? 0;
+        AppData.currentWeight.value =
+            (profile['weightLbs'] as num?)?.toDouble() ?? 0.0;
+        AppData.heightInches.value =
+            (profile['heightInches'] as num?)?.toDouble() ?? 0.0;
+        AppData.gender.value =
+            profile['gender'] as String? ?? '';
+        AppData.activityLevel.value =
+            profile['activityLevel'] as String? ?? '';
+        // sanitize legacy 'Muscle Gain' value -> 'Bulk'
+        final rawGoal = profile['goal'] as String? ?? '';
+        final sanitizedGoal = rawGoal == 'Muscle Gain' ? 'Bulk' : rawGoal;
+        AppData.goal.value = sanitizedGoal;
+
+        // update Firestore if the value was stale
+        if (rawGoal == 'Muscle Gain') {
+          DatabaseService().updateUserProfile(user.uid, {'goal': 'Bulk'});
+        }
+        AppData.weightGoalRate.value =
+            profile['weightGoalRate'] as String?;
+        AppData.targetWeight.value =
+            (profile['targetWeight'] as num?)?.toDouble() ??
+            AppData.currentWeight.value;
+
+        // restore today's logged meals from Firestore
+        await AppData.loadTodaysMeals(user.uid);
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      }
     } else {
       setState(() => _emailError = 'Invalid email or password');
     }

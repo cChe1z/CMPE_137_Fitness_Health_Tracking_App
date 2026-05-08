@@ -41,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       gender: AppData.gender.value,
       activityLevel: AppData.activityLevel.value,
       goal: AppData.goal.value,
+      weightGoalRate: AppData.weightGoalRate.value,
     );
 
     // save to Firestore
@@ -102,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ElevatedButton(
             onPressed: () {
               final newWeight =
-              double.tryParse(_newWeightController.text.trim());
+                  double.tryParse(_newWeightController.text.trim());
               if (newWeight == null || newWeight < 50 || newWeight > 700) {
                 return;
               }
@@ -176,7 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ElevatedButton(
             onPressed: () {
               final target =
-              double.tryParse(_targetWeightController.text.trim());
+                  double.tryParse(_targetWeightController.text.trim());
               if (target == null || target < 50 || target > 700) return;
               setState(() => AppData.targetWeight.value = target);
               Navigator.pop(context);
@@ -214,6 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       gender: AppData.gender.value,
       activityLevel: AppData.activityLevel.value,
       goal: AppData.goal.value,
+      weightGoalRate: AppData.weightGoalRate.value,
     );
   }
 
@@ -286,18 +288,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    return ValueListenableBuilder<double>(
-      valueListenable: AppData.currentWeight,
-      builder: (context, currentWeight, child) {
+    return ValueListenableBuilder<String?>(
+      valueListenable: AppData.weightGoalRate,
+      builder: (context, weightGoalRate, child) {
         return ValueListenableBuilder<double>(
-          valueListenable: AppData.bmi,
-          builder: (context, bmi, child) {
-            return ValueListenableBuilder<String>(
-              valueListenable: AppData.goal,
-              builder: (context, goal, child) {
-                return ValueListenableBuilder<int>(
-                  valueListenable: AppData.calorieGoal,
-                  builder: (context, calorieGoal, child) {
+          valueListenable: AppData.currentWeight,
+          builder: (context, currentWeight, child) {
+            return ValueListenableBuilder<double>(
+              valueListenable: AppData.bmi,
+              builder: (context, bmi, child) {
+                return ValueListenableBuilder<String>(
+                  valueListenable: AppData.goal,
+                  builder: (context, goal, child) {
+                    return ValueListenableBuilder<int>(
+                      valueListenable: AppData.calorieGoal,
+                      builder: (context, calorieGoal, child) {
 
                     return Scaffold(
                       backgroundColor: Colors.white,
@@ -324,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 context,
                                 MaterialPageRoute(
                                     builder: (_) => const LoginScreen()),
-                                    (route) => false,
+                                (route) => false,
                               );
                             },
                           ),
@@ -359,7 +364,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             user?.email ?? 'User',
@@ -376,10 +381,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             decoration: BoxDecoration(
                                               color: const Color(0xFF378ADD),
                                               borderRadius:
-                                              BorderRadius.circular(20),
+                                                  BorderRadius.circular(20),
                                             ),
                                             child: Text(
-                                              goal.isEmpty ? 'No goal set' : goal,
+                                              goal.isEmpty
+                                                  ? 'No goal set'
+                                                  : goal,
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 12,
@@ -428,7 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               // weight tracking section
                               Row(
                                 mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Weight Tracking',
@@ -444,7 +451,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       decoration: BoxDecoration(
                                         color: const Color(0xFF378ADD),
                                         borderRadius:
-                                        BorderRadius.circular(20),
+                                            BorderRadius.circular(20),
                                       ),
                                       child: const Text(
                                         '+ Update',
@@ -473,8 +480,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   children: [
                                     Row(
                                       mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
+                                          MainAxisAlignment.spaceAround,
                                       children: [
+                                        // current weight
                                         Column(
                                           children: [
                                             const Text(
@@ -516,9 +524,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                     style: const TextStyle(
                                                       fontSize: 22,
                                                       fontWeight:
-                                                      FontWeight.bold,
+                                                          FontWeight.bold,
                                                       color:
-                                                      Color(0xFFD85A30),
+                                                          Color(0xFFD85A30),
                                                     ),
                                                   ),
                                                   const SizedBox(width: 4),
@@ -538,11 +546,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     // progress bar toward target
                                     Column(
                                       crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Text(
                                               'Progress to goal',
@@ -569,14 +577,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           ),
                                           minHeight: 10,
                                           borderRadius:
-                                          BorderRadius.circular(10),
+                                              BorderRadius.circular(10),
                                           backgroundColor: Colors.white,
                                           color: const Color(0xFF378ADD),
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
                                           currentWeight <=
-                                              AppData.targetWeight.value
+                                                  AppData.targetWeight.value
                                               ? '🎉 Goal reached!'
                                               : '${(currentWeight - AppData.targetWeight.value).toStringAsFixed(1)} lbs to go',
                                           style: const TextStyle(
@@ -606,7 +614,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 onTap: () {
                                   _showEditDialog(
                                     title: 'Edit Age',
-                                    currentValue: AppData.age.value.toString(),
+                                    currentValue:
+                                        AppData.age.value.toString(),
                                     onSave: (value) {
                                       final age = int.tryParse(value);
                                       if (age != null) {
@@ -615,9 +624,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           _recalculateHealthData();
                                         });
 
-                                        final user = FirebaseAuth.instance.currentUser;
+                                        final user = FirebaseAuth
+                                            .instance.currentUser;
                                         if (user != null) {
-                                          DatabaseService().updateUserProfile(user.uid, {
+                                          DatabaseService()
+                                              .updateUserProfile(user.uid, {
                                             'age': age,
                                           });
                                         }
@@ -634,54 +645,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                               // height
                               GestureDetector(
-                                onTap: () {
-                                  _showEditDialog(
-                                    title: 'Edit Height (inches)',
-                                    currentValue: AppData.heightInches.value.toString(),
-                                    onSave: (value) {
-                                      final height = double.tryParse(value);
-
-                                      if (height != null) {
-                                        setState(() {
-                                          AppData.heightInches.value = height;
-                                          _recalculateHealthData();
-                                        });
-
-                                        final user = FirebaseAuth.instance.currentUser;
-                                        if (user != null) {
-                                          DatabaseService().updateUserProfile(user.uid, {
-                                            'heightInches': height,
-                                          });
-                                        }
-                                      }
-                                    },
-                                  );
-                                },
+                                onTap: _showHeightPickerDialog,
                                 child: _detailRow(
                                   Icons.height,
                                   'Height',
-                                  '${(AppData.heightInches.value ~/ 12)}\'${(AppData.heightInches.value % 12).toInt()}"',
+                                  AppData.heightInches.value == 0
+                                      ? '--'
+                                      : '${(AppData.heightInches.value ~/ 12)}\'${(AppData.heightInches.value % 12).toInt()}"',
                                 ),
                               ),
 
-                              // Gender
+                              // gender
                               GestureDetector(
                                 onTap: () {
-                                  String selectedGender = AppData.gender.value;
+                                  String selectedGender =
+                                      AppData.gender.value;
 
                                   showDialog(
                                     context: context,
                                     builder: (context) => AlertDialog(
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius:
+                                            BorderRadius.circular(16),
                                       ),
                                       title: const Text('Select Gender'),
-                                      content: DropdownButtonFormField<String>(
-                                        value: selectedGender.isEmpty ? null : selectedGender,
+                                      content:
+                                          DropdownButtonFormField<String>(
+                                        value: selectedGender.isEmpty
+                                            ? null
+                                            : selectedGender,
                                         items: const [
-                                          DropdownMenuItem(value: 'Male', child: Text('Male')),
-                                          DropdownMenuItem(value: 'Female', child: Text('Female')),
-                                          DropdownMenuItem(value: 'Other', child: Text('Other')),
+                                          DropdownMenuItem(
+                                              value: 'Male',
+                                              child: Text('Male')),
+                                          DropdownMenuItem(
+                                              value: 'Female',
+                                              child: Text('Female')),
+                                          DropdownMenuItem(
+                                              value: 'Other',
+                                              child: Text('Other')),
                                         ],
                                         onChanged: (value) {
                                           if (value != null) {
@@ -690,29 +692,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         },
                                         decoration: InputDecoration(
                                           filled: true,
-                                          fillColor: const Color(0xFFF5F5F5),
+                                          fillColor:
+                                              const Color(0xFFF5F5F5),
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
                                             borderSide: BorderSide.none,
                                           ),
                                         ),
                                       ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
                                           child: const Text('Cancel'),
                                         ),
                                         ElevatedButton(
                                           onPressed: () {
                                             setState(() {
-                                              AppData.gender.value = selectedGender;
+                                              AppData.gender.value =
+                                                  selectedGender;
                                               _recalculateHealthData();
                                             });
 
-                                            final user = FirebaseAuth.instance.currentUser;
-
+                                            final user = FirebaseAuth
+                                                .instance.currentUser;
                                             if (user != null) {
-                                              DatabaseService().updateUserProfile(user.uid, {
+                                              DatabaseService()
+                                                  .updateUserProfile(
+                                                      user.uid, {
                                                 'gender': selectedGender,
                                               });
                                             }
@@ -734,20 +742,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
 
-                              // Activity Level
+                              // activity level
                               GestureDetector(
                                 onTap: () {
-                                  String selectedActivity = AppData.activityLevel.value;
+                                  String selectedActivity =
+                                      AppData.activityLevel.value;
 
                                   showDialog(
                                     context: context,
                                     builder: (context) => AlertDialog(
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius:
+                                            BorderRadius.circular(16),
                                       ),
-                                      title: const Text('Activity Level'),
-                                      content: DropdownButtonFormField<String>(
-                                        value: selectedActivity.isEmpty ? null : selectedActivity,
+                                      title:
+                                          const Text('Activity Level'),
+                                      content:
+                                          DropdownButtonFormField<String>(
+                                        value: selectedActivity.isEmpty
+                                            ? null
+                                            : selectedActivity,
                                         items: const [
                                           DropdownMenuItem(
                                             value: 'Sedentary',
@@ -759,7 +773,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           ),
                                           DropdownMenuItem(
                                             value: 'Moderately Active',
-                                            child: Text('Moderately Active'),
+                                            child:
+                                                Text('Moderately Active'),
                                           ),
                                           DropdownMenuItem(
                                             value: 'Very Active',
@@ -773,30 +788,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         },
                                         decoration: InputDecoration(
                                           filled: true,
-                                          fillColor: const Color(0xFFF5F5F5),
+                                          fillColor:
+                                              const Color(0xFFF5F5F5),
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
                                             borderSide: BorderSide.none,
                                           ),
                                         ),
                                       ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
                                           child: const Text('Cancel'),
                                         ),
                                         ElevatedButton(
                                           onPressed: () {
                                             setState(() {
-                                              AppData.activityLevel.value = selectedActivity;
+                                              AppData.activityLevel
+                                                  .value = selectedActivity;
                                               _recalculateHealthData();
                                             });
 
-                                            final user = FirebaseAuth.instance.currentUser;
-
+                                            final user = FirebaseAuth
+                                                .instance.currentUser;
                                             if (user != null) {
-                                              DatabaseService().updateUserProfile(user.uid, {
-                                                'activityLevel': selectedActivity,
+                                              DatabaseService()
+                                                  .updateUserProfile(
+                                                      user.uid, {
+                                                'activityLevel':
+                                                    selectedActivity,
                                               });
                                             }
 
@@ -817,20 +839,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
 
-                              // Fitness Goal
+                              // weight goal rate (shown when goal is weight loss or muscle gain)
+                              if (goal == 'Weight Loss' ||
+                                  goal == 'Bulk')
+                                GestureDetector(
+                                  onTap: _showWeightGoalRateDialog,
+                                  child: _detailRow(
+                                    Icons.trending_down,
+                                    goal == 'Weight Loss'
+                                        ? 'Loss Rate'
+                                        : 'Bulk Rate',
+                                    weightGoalRate ?? '--',
+                                  ),
+                                ),
+
+                              // fitness goal
                               GestureDetector(
                                 onTap: () {
-                                  String selectedGoal = AppData.goal.value;
+                                  // sanitize legacy 'Muscle Gain' -> 'Bulk'
+                                  String selectedGoal =
+                                      AppData.goal.value == 'Muscle Gain'
+                                          ? 'Bulk'
+                                          : AppData.goal.value;
+
+                                  // valid values for the dropdown
+                                  const validGoals = [
+                                    'Weight Loss', 'Maintain Weight', 'Bulk'
+                                  ];
 
                                   showDialog(
                                     context: context,
                                     builder: (context) => AlertDialog(
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius:
+                                            BorderRadius.circular(16),
                                       ),
-                                      title: const Text('Fitness Goal'),
-                                      content: DropdownButtonFormField<String>(
-                                        value: selectedGoal.isEmpty ? null : selectedGoal,
+                                      title:
+                                          const Text('Fitness Goal'),
+                                      content:
+                                          DropdownButtonFormField<String>(
+                                        value: selectedGoal.isEmpty ||
+                                                !validGoals.contains(selectedGoal)
+                                            ? null
+                                            : selectedGoal,
                                         items: const [
                                           DropdownMenuItem(
                                             value: 'Weight Loss',
@@ -838,11 +889,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           ),
                                           DropdownMenuItem(
                                             value: 'Maintain Weight',
-                                            child: Text('Maintain Weight'),
+                                            child:
+                                                Text('Maintain Weight'),
                                           ),
                                           DropdownMenuItem(
-                                            value: 'Muscle Gain',
-                                            child: Text('Muscle Gain'),
+                                            value: 'Bulk',
+                                            child: Text('Bulk'),
                                           ),
                                         ],
                                         onChanged: (value) {
@@ -852,34 +904,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         },
                                         decoration: InputDecoration(
                                           filled: true,
-                                          fillColor: const Color(0xFFF5F5F5),
+                                          fillColor:
+                                              const Color(0xFFF5F5F5),
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
                                             borderSide: BorderSide.none,
                                           ),
                                         ),
                                       ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
                                           child: const Text('Cancel'),
                                         ),
                                         ElevatedButton(
                                           onPressed: () {
                                             setState(() {
-                                              AppData.goal.value = selectedGoal;
+                                              AppData.goal.value =
+                                                  selectedGoal;
+                                              // clear rate when goal changes
+                                              // so user is prompted to pick one
+                                              if (selectedGoal == 'Weight Loss' ||
+                                                  selectedGoal == 'Bulk') {
+                                                AppData.weightGoalRate.value = null;
+                                              }
                                               _recalculateHealthData();
                                             });
 
-                                            final user = FirebaseAuth.instance.currentUser;
-
+                                            final user = FirebaseAuth
+                                                .instance.currentUser;
                                             if (user != null) {
-                                              DatabaseService().updateUserProfile(user.uid, {
+                                              DatabaseService()
+                                                  .updateUserProfile(
+                                                      user.uid, {
                                                 'goal': selectedGoal,
+                                                'weightGoalRate': null,
                                               });
                                             }
 
                                             Navigator.pop(context);
+
+                                            // auto-prompt for rate if the new
+                                            // goal requires one
+                                            if (selectedGoal == 'Weight Loss' ||
+                                                selectedGoal == 'Bulk') {
+                                              Future.delayed(
+                                                const Duration(milliseconds: 300),
+                                                _showWeightGoalRateDialog,
+                                              );
+                                            }
                                           },
                                           child: const Text('Save'),
                                         ),
@@ -901,13 +976,382 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ),
-                    );
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+  }
+
+  // scrollable height picker — same wheel as profile setup screen
+  void _showHeightPickerDialog() {
+    // derive current feet/inches from stored total inches
+    final totalInches = AppData.heightInches.value;
+    int tempFeet = totalInches == 0 ? 5 : (totalInches ~/ 12);
+    int tempInches = totalInches == 0 ? 8 : (totalInches % 12).toInt();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          height: 320,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+
+              const Text(
+                'Select Height',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+
+                    // feet wheel
+                    Column(
+                      children: [
+                        const Text('ft',
+                            style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: 80,
+                          height: 150,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+
+                              // orange highlight behind selected item
+                              Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD85A30)
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: const Color(0xFFD85A30),
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+
+                              // feet scroll wheel
+                              ListWheelScrollView.useDelegate(
+                                itemExtent: 40,
+                                perspective: 0.005,
+                                diameterRatio: 1.5,
+                                physics: const FixedExtentScrollPhysics(),
+                                controller: FixedExtentScrollController(
+                                    initialItem: tempFeet - 3),
+                                onSelectedItemChanged: (index) {
+                                  tempFeet = index + 3;
+                                },
+                                childDelegate: ListWheelChildBuilderDelegate(
+                                  childCount: 6,
+                                  builder: (context, index) {
+                                    final ft = index + 3;
+                                    return Center(
+                                      child: Text(
+                                        '$ft\'',
+                                        style: const TextStyle(fontSize: 22),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(width: 32),
+
+                    // inches wheel
+                    Column(
+                      children: [
+                        const Text('in',
+                            style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: 80,
+                          height: 150,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+
+                              // orange highlight behind selected item
+                              Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD85A30)
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: const Color(0xFFD85A30),
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+
+                              // inches scroll wheel
+                              ListWheelScrollView.useDelegate(
+                                itemExtent: 40,
+                                perspective: 0.005,
+                                diameterRatio: 1.5,
+                                physics: const FixedExtentScrollPhysics(),
+                                controller: FixedExtentScrollController(
+                                    initialItem: tempInches),
+                                onSelectedItemChanged: (index) {
+                                  tempInches = index;
+                                },
+                                childDelegate: ListWheelChildBuilderDelegate(
+                                  childCount: 12,
+                                  builder: (context, index) {
+                                    return Center(
+                                      child: Text(
+                                        '$index"',
+                                        style: const TextStyle(fontSize: 22),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // confirm button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final newHeight =
+                        (tempFeet * 12 + tempInches).toDouble();
+                    setState(() {
+                      AppData.heightInches.value = newHeight;
+                      _recalculateHealthData();
+                    });
+
+                    // save to Firestore
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user != null) {
+                      DatabaseService().updateUserProfile(user.uid, {
+                        'heightInches': newHeight,
+                        'bmi': AppData.bmi.value,
+                        'calorieGoal': AppData.calorieGoal.value,
+                      });
+                    }
+
+                    Navigator.pop(context); // clear error on confirm
                   },
-                );
-              },
-            );
-          },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF378ADD),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Confirm'),
+                ),
+              ),
+            ],
+          ),
         );
+      },
+    );
+  }
+
+  // weight goal rate picker dialog
+  void _showWeightGoalRateDialog() {
+    final isLoss = AppData.goal.value == 'Weight Loss';
+    final rates = isLoss ? kWeightLossRates : kWeightGainRates;
+    String? selectedRate = AppData.weightGoalRate.value;
+
+    final maintenance = AppData.calculateMaintenance(
+      age: AppData.age.value,
+      weightLbs: AppData.currentWeight.value,
+      heightInches: AppData.heightInches.value,
+      gender: AppData.gender.value,
+      activityLevel: AppData.activityLevel.value,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isLoss ? 'Weight loss rate' : 'Bulk rate',
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Maintain: $maintenance cal/day',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                ...rates.map((rate) {
+                  final key = rate['key'] as String;
+                  final isCurrent = selectedRate == key;
+                  final isRecommended = rate['recommended'] as bool;
+                  final adjustment = (rate['deficit'] ?? rate['surplus']) as int;
+                  final targetCals = isLoss
+                      ? maintenance - adjustment
+                      : maintenance + adjustment;
+                  final color = isRecommended
+                      ? const Color(0xFF378ADD)
+                      : const Color(0xFFD85A30);
+
+                  return GestureDetector(
+                    onTap: () => setSheetState(() => selectedRate = key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: isCurrent
+                            ? color.withValues(alpha: 0.08)
+                            : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isCurrent ? color : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(rate['label'] as String,
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isCurrent
+                                                ? color
+                                                : Colors.black87)),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isRecommended
+                                            ? const Color(0xFF2E7D32)
+                                                .withValues(alpha: 0.12)
+                                            : const Color(0xFFD85A30)
+                                                .withValues(alpha: 0.10),
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        isRecommended
+                                            ? '✓ Recommended'
+                                            : '⚠ Hard to maintain',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          color: isRecommended
+                                              ? const Color(0xFF2E7D32)
+                                              : const Color(0xFFD85A30),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(rate['subtitle'] as String,
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('$targetCals',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: isCurrent
+                                          ? color
+                                          : Colors.black87)),
+                              const Text('cal/day',
+                                  style: TextStyle(
+                                      fontSize: 10, color: Colors.grey)),
+                            ],
+                          ),
+                          if (isCurrent) ...[
+                            const SizedBox(width: 8),
+                            Icon(Icons.check_circle, color: color, size: 20),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        AppData.weightGoalRate.value = selectedRate;
+                        _recalculateHealthData();
+                      });
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user != null) {
+                        DatabaseService().updateUserProfile(user.uid, {
+                          'weightGoalRate': selectedRate,
+                          'calorieGoal': AppData.calorieGoal.value,
+                        });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF378ADD),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Confirm'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        });
       },
     );
   }
