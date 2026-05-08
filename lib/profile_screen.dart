@@ -714,6 +714,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontSize: 14,
                   color: Colors.grey,
                   fontWeight: FontWeight.w500)),
+          const SizedBox(width: 8),
+          const Icon(Icons.edit,
+              color: Colors.grey, size: 18),
         ],
       ),
     );
@@ -1091,6 +1094,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               fontSize: 18,
                                               fontWeight:
                                               FontWeight.bold)),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Tap any field to edit',
+                                        style: TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 13),
+                                      ),
                                       const SizedBox(height: 12),
 
                                       // Age
@@ -1527,7 +1537,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ─── Level picker sheet (profile-specific, updates all days) ──────────────────
+// ─── Level picker sheet (updates all days) ──────────────────
 
 class _ProfileLevelPickerSheet extends StatelessWidget {
   final String? current;
