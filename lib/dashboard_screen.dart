@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'meal_tracking_screen.dart';
 import 'app_data.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -173,11 +174,10 @@ class DashboardScreen extends StatelessWidget {
                             subtitle: 'View and update your profile',
                             color: const Color(0xFF378ADD),
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Profile page coming soon',
-                                  ),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder:(_) => const ProfileScreen()
                                 ),
                               );
                             },

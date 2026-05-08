@@ -22,6 +22,16 @@ class AppData {
   static final ValueNotifier<int> calorieGoal = ValueNotifier<int>(2200);
   static final ValueNotifier<double> bmi = ValueNotifier<double>(0);
 
+  static final ValueNotifier<String> userName = ValueNotifier<String>('');
+  static final ValueNotifier<double> currentWeight = ValueNotifier<double>(0);
+  static final ValueNotifier<double> targetWeight = ValueNotifier<double>(0);
+  static final ValueNotifier<int> age = ValueNotifier<int>(0);
+  static final ValueNotifier<String> gender = ValueNotifier<String>('');
+  static final ValueNotifier<double> heightInches = ValueNotifier<double>(0);
+
+  static final ValueNotifier<String> goal = ValueNotifier<String>('');
+  static final ValueNotifier<String> activityLevel = ValueNotifier<String>('');
+
   static int get totalCalories {
     return meals.value.fold(0, (sum, meal) => sum + meal.calories);
   }
@@ -104,18 +114,22 @@ class AppData {
     required String activityLevel,
     required String goal,
   }) {
-    bmi.value = calculateBMI(
-      weightLbs: weightLbs,
-      heightInches: heightInches,
-    );
-
+    bmi.value = calculateBMI(weightLbs: weightLbs, heightInches: heightInches);
     calorieGoal.value = calculateCalorieGoal(
-      age: age,
-      weightLbs: weightLbs,
-      heightInches: heightInches,
-      gender: gender,
-      activityLevel: activityLevel,
-      goal: goal,
+      age: age, weightLbs: weightLbs, heightInches: heightInches,
+      gender: gender, activityLevel: activityLevel, goal: goal,
     );
+    AppData.goal.value = goal;
+    AppData.activityLevel.value = activityLevel;
+    AppData.currentWeight.value = weightLbs;  // add
+    AppData.age.value = age;                  // add
+    AppData.gender.value = gender;            // add
+    AppData.heightInches.value = heightInches; // add
+    // target weight defaults to current - 10 for weight loss, same for others
+    if (goal == 'Weight Loss') {
+      AppData.targetWeight.value = weightLbs - 10;
+    } else {
+      AppData.targetWeight.value = weightLbs;
+    }
   }
 }
