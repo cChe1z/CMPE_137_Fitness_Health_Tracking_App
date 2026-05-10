@@ -294,8 +294,8 @@ class AppData {
     return meals.value.fold(0, (sum, meal) => sum + meal.calories);
   }
 
-  static void addMeal(String name, int calories,
-      {int protein = 0, int carbs = 0, int fats = 0}) {
+  static Future<void> addMeal(String name, int calories,
+      {int protein = 0, int carbs = 0, int fats = 0}) async {
     meals.value = [
       ...meals.value,
       Meal(name: name, calories: calories,
@@ -304,7 +304,7 @@ class AppData {
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      DatabaseService().logMeal({
+      await DatabaseService().logMeal({
         'userId': user.uid,
         'name': name,
         'calories': calories,
@@ -313,6 +313,8 @@ class AppData {
         'fats': fats,
         'loggedAt': DateTime.now(),
       });
+      // keep the daily snapshot in sync after every meal change
+      saveTodayCalorieSnapshot(user.uid);
     }
   }
 
@@ -325,6 +327,10 @@ class AppData {
     if (meal.firestoreId != null) {
       DatabaseService().deleteMeal(meal.firestoreId!);
     }
+
+    // keep the daily snapshot in sync after every meal change
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) saveTodayCalorieSnapshot(user.uid);
   }
 
   // ── BMI / calorie helpers ────────────────────────────────────────────────
@@ -413,6 +419,49 @@ class AppData {
 
     return maintenance;
   }
+
+  // ── Today's logged weight ────────────────────────────────────────────────
+
+  /// Weight logged by the user for today (null = not yet logged today).
+  static final ValueNotifier<double?> todayWeight =
+      ValueNotifier<double?>(null);
+
+  /// Log (or overwrite) today's weight and persist to Firestore.
+  static Future<void> logTodayWeight(String userId, double weightLbs) async {
+    todayWeight.value = weightLbs;
+    final dateKey = _dateKey(DateTime.now());
+    await DatabaseService().saveDailySnapshot(userId, dateKey, {
+      'weightLbs': weightLbs,
+      'date': dateKey,
+    });
+  }
+
+  /// Load today's weight entry from Firestore (called on login / app resume).
+  static Future<void> loadTodayWeight(String userId) async {
+    final dateKey = _dateKey(DateTime.now());
+    final snap = await DatabaseService().getDailySnapshot(userId, dateKey);
+    if (snap != null) {
+      todayWeight.value = (snap['weightLbs'] as num?)?.toDouble();
+    } else {
+      todayWeight.value = null;
+    }
+  }
+
+  /// Save today's calorie total as a daily snapshot (called automatically
+  /// whenever a meal is added or deleted, and on login).
+  static Future<void> saveTodayCalorieSnapshot(String userId) async {
+    final dateKey = _dateKey(DateTime.now());
+    await DatabaseService().saveDailySnapshot(userId, dateKey, {
+      'calories': totalCalories,
+      'date': dateKey,
+    });
+  }
+
+  /// Returns a YYYY-MM-DD string for a given date, used as a Firestore doc key.
+  static String _dateKey(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
   static Future<void> loadTodaysMeals(String userId) async {
     final data = await DatabaseService().getMealsByDate(userId, DateTime.now());
