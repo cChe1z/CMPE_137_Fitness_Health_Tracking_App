@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'meal_tracking_screen.dart';
 import 'fitness_plan_screen.dart';
 import 'profile_screen.dart';
+import 'daily_journal_screen.dart';
 import 'app_data.dart';
 
 class DashboardScreen extends StatelessWidget {
-  final void Function(int)? onNavigate;
+  final void Function(int index)? onNavigate;
+
   const DashboardScreen({super.key, this.onNavigate});
 
   String _bmiCategory(double bmi) {
@@ -52,6 +55,9 @@ class DashboardScreen extends StatelessWidget {
                     final todayIndex = _todayIndex;
                     final todayBlocks = schedule[todayIndex] ?? [];
 
+                    return ValueListenableBuilder<double?>(
+                      valueListenable: AppData.todayWeight,
+                      builder: (context, todayWeight, child) {
                     return Scaffold(
                       backgroundColor: Colors.white,
                       appBar: AppBar(
@@ -89,7 +95,12 @@ class DashboardScreen extends StatelessWidget {
                               _TodayWorkoutCard(
                                 todayIndex: todayIndex,
                                 todayBlocks: todayBlocks,
-                                onTap: () => onNavigate?.call(2),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const FitnessPlanScreen(),
+                                  ),
+                                ),
                               ),
 
                               const SizedBox(height: 20),
@@ -155,6 +166,80 @@ class DashboardScreen extends StatelessWidget {
                                         color: Colors.grey,
                                       ),
                                     ),
+
+                                    const SizedBox(height: 12),
+
+                                    // divider between BMI and weight entry
+                                    Divider(
+                                        color: Colors.white,
+                                        thickness: 1,
+                                        height: 1),
+
+                                    const SizedBox(height: 12),
+
+                                    // today's weight row with quick log / edit button
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              "Today's Weight",
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF378ADD),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              todayWeight != null
+                                                  ? '${todayWeight.toStringAsFixed(1)} lbs'
+                                                  : 'Not logged yet',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: todayWeight != null
+                                                    ? Colors.black87
+                                                    : Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        // log / edit button
+                                        TextButton.icon(
+                                          onPressed: () =>
+                                              _showWeightDialog(context),
+                                          icon: Icon(
+                                            todayWeight != null
+                                                ? Icons.edit
+                                                : Icons.add,
+                                            size: 16,
+                                            color: const Color(0xFF378ADD),
+                                          ),
+                                          label: Text(
+                                            todayWeight != null
+                                                ? 'Edit'
+                                                : 'Log',
+                                            style: const TextStyle(
+                                              color: Color(0xFF378ADD),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 6),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ),
@@ -177,7 +262,33 @@ class DashboardScreen extends StatelessWidget {
                                 title: 'Calorie Logger',
                                 subtitle: 'Log meals and track calories',
                                 color: const Color(0xFFD85A30),
-                                onTap: () => onNavigate?.call(1),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const MealTrackingScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+
+                              // daily journal card — calendar history of calories + weight
+                              _dashboardCard(
+                                icon: Icons.calendar_month_rounded,
+                                title: 'Daily Journal',
+                                subtitle:
+                                    'View calorie & weight history by day',
+                                color: const Color(0xFF5C6BC0),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const DailyJournalScreen(),
+                                    ),
+                                  );
+                                },
                               ),
 
                               // fitness plan card (enhanced)
@@ -189,12 +300,21 @@ class DashboardScreen extends StatelessWidget {
                                 title: 'Profile',
                                 subtitle: 'View and update your profile',
                                 color: const Color(0xFF378ADD),
-                                onTap: () => onNavigate?.call(3),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ProfileScreen(),
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),
                         ),
                       ),
+                    );
+                      }, // end todayWeight builder
                     );
                   },
                 );
@@ -206,10 +326,133 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  // ── Weight logger dialog ─────────────────────────────────────────────────
+
+  /// Shows a bottom sheet where the user can log or edit today's weight.
+  void _showWeightDialog(BuildContext context) {
+    final controller = TextEditingController(
+      text: AppData.todayWeight.value != null
+          ? AppData.todayWeight.value!.toStringAsFixed(1)
+          : '',
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Text(
+                AppData.todayWeight.value != null
+                    ? 'Edit Today\'s Weight'
+                    : 'Log Today\'s Weight',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Enter your weight in pounds',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: controller,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'e.g. 165.5',
+                  suffixText: 'lbs',
+                  filled: true,
+                  fillColor: const Color(0xFFF5F5F5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                        color: Color(0xFF378ADD), width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final val =
+                        double.tryParse(controller.text.trim());
+                    if (val != null && val > 0) {
+                      final user =
+                          FirebaseAuth.instance.currentUser;
+                      if (user != null) {
+                        AppData.logTodayWeight(user.uid, val);
+                      }
+                      Navigator.pop(ctx);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF378ADD),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // enhanced fitness plan card
   Widget _fitnessPlanCard(BuildContext context, WeekSchedule schedule) {
     return GestureDetector(
-      onTap: () => onNavigate?.call(2),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const FitnessPlanScreen()),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(18),
