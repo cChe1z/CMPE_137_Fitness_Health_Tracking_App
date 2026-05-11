@@ -40,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       goal: AppData.goal.value,
       weightGoalRate: AppData.weightGoalRate.value,
     );
+
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       DatabaseService().updateUserProfile(user.uid, {
@@ -47,6 +48,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'bmi': AppData.bmi.value,
         'calorieGoal': AppData.calorieGoal.value,
       });
+
+      // ✅ ADD THESE TWO LINES — sync today's weight log so
+      // the dashboard and daily journal reflect the change:
+      AppData.todayWeight.value = newWeight;
+      AppData.logTodayWeight(user.uid, newWeight);
     }
   }
 

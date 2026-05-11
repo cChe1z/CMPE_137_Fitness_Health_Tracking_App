@@ -27,7 +27,7 @@ class DatabaseService {
   Future<List<Map<String, dynamic>>> getMealsByDate(String userId, DateTime date) async {
     DateTime startOfDay = DateTime(date.year, date.month, date.day);
     DateTime endOfDay = startOfDay.add(Duration(days: 1));
-    
+
     QuerySnapshot snapshot = await _db
         .collection('meal_logs')
         .where('userId', isEqualTo: userId)
@@ -48,7 +48,7 @@ class DatabaseService {
   Future<List<Map<String, dynamic>>> getWorkoutsByDate(String userId, DateTime date) async {
     DateTime startOfDay = DateTime(date.year, date.month, date.day);
     DateTime endOfDay = startOfDay.add(Duration(days: 1));
-    
+
     QuerySnapshot snapshot = await _db
         .collection('workout_logs')
         .where('userId', isEqualTo: userId)
@@ -78,5 +78,42 @@ class DatabaseService {
       total += (meal['calories'] as num).toInt();
     }
     return total;
+  }
+
+  // ── Daily snapshots (weight + calories per day) ───────────────────────────
+
+  /// Merge-writes fields into a per-user, per-date document.
+  /// dateKey format: 'YYYY-MM-DD'
+  Future<void> saveDailySnapshot(
+      String userId, String dateKey, Map<String, dynamic> data) async {
+    await _db
+        .collection('users')
+        .doc(userId)
+        .collection('daily_logs')
+        .doc(dateKey)
+        .set(data, SetOptions(merge: true));
+  }
+
+  /// Returns the snapshot for a single date, or null if none exists.
+  Future<Map<String, dynamic>?> getDailySnapshot(
+      String userId, String dateKey) async {
+    final doc = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('daily_logs')
+        .doc(dateKey)
+        .get();
+    return doc.data();
+  }
+
+  /// Returns all daily logs for a user, sorted oldest → newest.
+  Future<List<Map<String, dynamic>>> getDailyLogs(String userId) async {
+    final snap = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('daily_logs')
+        .orderBy(FieldPath.documentId)
+        .get();
+    return snap.docs.map((d) => d.data()).toList();
   }
 }
