@@ -49,8 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'calorieGoal': AppData.calorieGoal.value,
       });
 
-      // ✅ ADD THESE TWO LINES — sync today's weight log so
-      // the dashboard and daily journal reflect the change:
+      // ✅ sync today's weight log
       AppData.todayWeight.value = newWeight;
       AppData.logTodayWeight(user.uid, newWeight);
     }
@@ -658,10 +657,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return const Color(0xFFD85A30);
   }
 
-  double _weightProgress(double current, double target, double start) {
-    if (start == target) return 1.0;
-    return ((start - current) / (start - target)).clamp(0.0, 1.0);
-  }
+  // ✅ REMOVED unused _weightProgress method
 
   Widget _statCard({
     required String label,
@@ -940,7 +936,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               MainAxisAlignment
                                                   .spaceAround,
                                               children: [
-                                                // current weight — tap pencil to edit
+                                                // current weight
                                                 GestureDetector(
                                                   onTap: _showUpdateWeightDialog,
                                                   child: Column(
@@ -970,7 +966,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 ),
                                                 const Icon(Icons.arrow_forward,
                                                     color: Colors.grey),
-                                                // target weight — tap pencil to edit
+                                                // target weight
                                                 GestureDetector(
                                                   onTap: _showUpdateTargetWeightDialog,
                                                   child: Column(
@@ -1001,7 +997,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               ],
                                             ),
                                             const SizedBox(height: 12),
-                                            // difference label
                                             Text(
                                               currentWeight <= AppData.targetWeight.value
                                                   ? '🎉 Goal reached!'
@@ -1076,99 +1071,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ),
                                       ),
 
-                                      // Gender
+                                      // Gender - ✅ FIXED: Using initialValue
                                       GestureDetector(
                                         onTap: () {
                                           String selectedGender =
                                               AppData.gender.value;
                                           showDialog(
                                             context: context,
-                                            builder: (context) =>
-                                                AlertDialog(
-                                                  shape:
-                                                  RoundedRectangleBorder(
+                                            builder: (context) => AlertDialog(
+                                                shape:
+                                                RoundedRectangleBorder(
+                                                    borderRadius:
+                                                    BorderRadius
+                                                        .circular(
+                                                        16)),
+                                                title: const Text(
+                                                    'Select Gender'),
+                                                content:
+                                                DropdownButtonFormField<
+                                                    String>(
+                                                  initialValue: selectedGender
+                                                      .isEmpty
+                                                      ? null
+                                                      : selectedGender,
+                                                  items: const [
+                                                    DropdownMenuItem(
+                                                        value: 'Male',
+                                                        child:
+                                                        Text('Male')),
+                                                    DropdownMenuItem(
+                                                        value: 'Female',
+                                                        child:
+                                                        Text('Female')),
+                                                    DropdownMenuItem(
+                                                        value: 'Other',
+                                                        child:
+                                                        Text('Other')),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    if (value != null) {
+                                                      selectedGender = value;
+                                                    }
+                                                  },
+                                                  decoration:
+                                                  InputDecoration(
+                                                    filled: true,
+                                                    fillColor: const Color(
+                                                        0xFFF5F5F5),
+                                                    border:
+                                                    OutlineInputBorder(
                                                       borderRadius:
                                                       BorderRadius
-                                                          .circular(
-                                                          16)),
-                                                  title: const Text(
-                                                      'Select Gender'),
-                                                  content:
-                                                  DropdownButtonFormField<
-                                                      String>(
-                                                    value: selectedGender
-                                                        .isEmpty
-                                                        ? null
-                                                        : selectedGender,
-                                                    items: const [
-                                                      DropdownMenuItem(
-                                                          value: 'Male',
-                                                          child:
-                                                          Text('Male')),
-                                                      DropdownMenuItem(
-                                                          value: 'Female',
-                                                          child:
-                                                          Text('Female')),
-                                                      DropdownMenuItem(
-                                                          value: 'Other',
-                                                          child:
-                                                          Text('Other')),
-                                                    ],
-                                                    onChanged: (value) {
-                                                      if (value != null) {
-                                                        selectedGender =
-                                                            value;
-                                                      }
-                                                    },
-                                                    decoration:
-                                                    InputDecoration(
-                                                      filled: true,
-                                                      fillColor: const Color(
-                                                          0xFFF5F5F5),
-                                                      border:
-                                                      OutlineInputBorder(
-                                                        borderRadius:
-                                                        BorderRadius
-                                                            .circular(10),
-                                                        borderSide:
-                                                        BorderSide.none,
-                                                      ),
+                                                          .circular(10),
+                                                      borderSide:
+                                                      BorderSide.none,
                                                     ),
                                                   ),
-                                                  actions: [
-                                                    TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                context),
-                                                        child: const Text(
-                                                            'Cancel')),
-                                                    ElevatedButton(
-                                                      onPressed: () {
-                                                        setState(() {
-                                                          AppData.gender
-                                                              .value =
-                                                              selectedGender;
-                                                          _recalculateHealthData();
-                                                        });
-                                                        final u = FirebaseAuth
-                                                            .instance
-                                                            .currentUser;
-                                                        if (u != null) {
-                                                          DatabaseService()
-                                                              .updateUserProfile(
-                                                              u.uid, {
-                                                            'gender':
-                                                            selectedGender
-                                                          });
-                                                        }
-                                                        Navigator.pop(
-                                                            context);
-                                                      },
-                                                      child: const Text(
-                                                          'Save'),
-                                                    ),
-                                                  ],
                                                 ),
+                                                actions: [
+                                                  TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context),
+                                                      child: const Text(
+                                                          'Cancel')),
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        AppData.gender
+                                                            .value =
+                                                            selectedGender;
+                                                        _recalculateHealthData();
+                                                      });
+                                                      final u = FirebaseAuth
+                                                          .instance
+                                                          .currentUser;
+                                                      if (u != null) {
+                                                        DatabaseService()
+                                                            .updateUserProfile(
+                                                            u.uid, {
+                                                          'gender':
+                                                          selectedGender
+                                                        });
+                                                      }
+                                                      Navigator.pop(
+                                                          context);
+                                                    },
+                                                    child: const Text(
+                                                        'Save'),
+                                                  ),
+                                                ],
+                                              ),
                                           );
                                         },
                                         child: _detailRow(
@@ -1179,105 +1172,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 : AppData.gender.value),
                                       ),
 
-                                      // Activity Level
+                                      // Activity Level - ✅ FIXED: Using initialValue
                                       GestureDetector(
                                         onTap: () {
                                           String selectedActivity =
                                               AppData.activityLevel.value;
                                           showDialog(
                                             context: context,
-                                            builder: (context) =>
-                                                AlertDialog(
-                                                  shape:
-                                                  RoundedRectangleBorder(
+                                            builder: (context) => AlertDialog(
+                                                shape:
+                                                RoundedRectangleBorder(
+                                                    borderRadius:
+                                                    BorderRadius
+                                                        .circular(
+                                                        16)),
+                                                title: const Text(
+                                                    'Activity Level'),
+                                                content:
+                                                DropdownButtonFormField<
+                                                    String>(
+                                                  initialValue: selectedActivity
+                                                      .isEmpty
+                                                      ? null
+                                                      : selectedActivity,
+                                                  items: const [
+                                                    DropdownMenuItem(
+                                                        value: 'Sedentary',
+                                                        child: Text(
+                                                            'Sedentary')),
+                                                    DropdownMenuItem(
+                                                        value:
+                                                        'Lightly Active',
+                                                        child: Text(
+                                                            'Lightly Active')),
+                                                    DropdownMenuItem(
+                                                        value:
+                                                        'Moderately Active',
+                                                        child: Text(
+                                                            'Moderately Active')),
+                                                    DropdownMenuItem(
+                                                        value: 'Very Active',
+                                                        child: Text(
+                                                            'Very Active')),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    if (value != null) {
+                                                      selectedActivity = value;
+                                                    }
+                                                  },
+                                                  decoration:
+                                                  InputDecoration(
+                                                    filled: true,
+                                                    fillColor: const Color(
+                                                        0xFFF5F5F5),
+                                                    border:
+                                                    OutlineInputBorder(
                                                       borderRadius:
                                                       BorderRadius
-                                                          .circular(
-                                                          16)),
-                                                  title: const Text(
-                                                      'Activity Level'),
-                                                  content:
-                                                  DropdownButtonFormField<
-                                                      String>(
-                                                    value: selectedActivity
-                                                        .isEmpty
-                                                        ? null
-                                                        : selectedActivity,
-                                                    items: const [
-                                                      DropdownMenuItem(
-                                                          value: 'Sedentary',
-                                                          child: Text(
-                                                              'Sedentary')),
-                                                      DropdownMenuItem(
-                                                          value:
-                                                          'Lightly Active',
-                                                          child: Text(
-                                                              'Lightly Active')),
-                                                      DropdownMenuItem(
-                                                          value:
-                                                          'Moderately Active',
-                                                          child: Text(
-                                                              'Moderately Active')),
-                                                      DropdownMenuItem(
-                                                          value: 'Very Active',
-                                                          child: Text(
-                                                              'Very Active')),
-                                                    ],
-                                                    onChanged: (value) {
-                                                      if (value != null) {
-                                                        selectedActivity =
-                                                            value;
-                                                      }
-                                                    },
-                                                    decoration:
-                                                    InputDecoration(
-                                                      filled: true,
-                                                      fillColor: const Color(
-                                                          0xFFF5F5F5),
-                                                      border:
-                                                      OutlineInputBorder(
-                                                        borderRadius:
-                                                        BorderRadius
-                                                            .circular(10),
-                                                        borderSide:
-                                                        BorderSide.none,
-                                                      ),
+                                                          .circular(10),
+                                                      borderSide:
+                                                      BorderSide.none,
                                                     ),
                                                   ),
-                                                  actions: [
-                                                    TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                context),
-                                                        child: const Text(
-                                                            'Cancel')),
-                                                    ElevatedButton(
-                                                      onPressed: () {
-                                                        setState(() {
-                                                          AppData.activityLevel
-                                                              .value =
-                                                              selectedActivity;
-                                                          _recalculateHealthData();
-                                                        });
-                                                        final u = FirebaseAuth
-                                                            .instance
-                                                            .currentUser;
-                                                        if (u != null) {
-                                                          DatabaseService()
-                                                              .updateUserProfile(
-                                                              u.uid, {
-                                                            'activityLevel':
-                                                            selectedActivity
-                                                          });
-                                                        }
-                                                        Navigator.pop(
-                                                            context);
-                                                      },
-                                                      child: const Text(
-                                                          'Save'),
-                                                    ),
-                                                  ],
                                                 ),
+                                                actions: [
+                                                  TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context),
+                                                      child: const Text(
+                                                          'Cancel')),
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        AppData.activityLevel
+                                                            .value =
+                                                            selectedActivity;
+                                                        _recalculateHealthData();
+                                                      });
+                                                      final u = FirebaseAuth
+                                                          .instance
+                                                          .currentUser;
+                                                      if (u != null) {
+                                                        DatabaseService()
+                                                            .updateUserProfile(
+                                                            u.uid, {
+                                                          'activityLevel':
+                                                          selectedActivity
+                                                        });
+                                                      }
+                                                      Navigator.pop(
+                                                          context);
+                                                    },
+                                                    child: const Text(
+                                                        'Save'),
+                                                  ),
+                                                ],
+                                              ),
                                           );
                                         },
                                         child: _detailRow(
@@ -1290,7 +1281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 .activityLevel.value),
                                       ),
 
-                                      // Fitness Level — updates ALL days
+                                      // Fitness Level
                                       GestureDetector(
                                         onTap: _showFitnessLevelDialog,
                                         child: _detailRow(
@@ -1313,7 +1304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               weightGoalRate ?? '--'),
                                         ),
 
-                                      // Fitness Goal
+                                      // Fitness Goal - ✅ FIXED: Using initialValue
                                       GestureDetector(
                                         onTap: () {
                                           String selectedGoal =
@@ -1328,113 +1319,112 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           ];
                                           showDialog(
                                             context: context,
-                                            builder: (context) =>
-                                                AlertDialog(
-                                                  shape:
-                                                  RoundedRectangleBorder(
+                                            builder: (context) => AlertDialog(
+                                                shape:
+                                                RoundedRectangleBorder(
+                                                    borderRadius:
+                                                    BorderRadius
+                                                        .circular(
+                                                        16)),
+                                                title: const Text(
+                                                    'Fitness Goal'),
+                                                content:
+                                                DropdownButtonFormField<
+                                                    String>(
+                                                  initialValue: selectedGoal
+                                                      .isEmpty ||
+                                                      !validGoals
+                                                          .contains(
+                                                          selectedGoal)
+                                                      ? null
+                                                      : selectedGoal,
+                                                  items: const [
+                                                    DropdownMenuItem(
+                                                        value: 'Weight Loss',
+                                                        child: Text(
+                                                            'Weight Loss')),
+                                                    DropdownMenuItem(
+                                                        value:
+                                                        'Maintain Weight',
+                                                        child: Text(
+                                                            'Maintain Weight')),
+                                                    DropdownMenuItem(
+                                                        value: 'Bulk',
+                                                        child: Text('Bulk')),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    if (value != null) {
+                                                      selectedGoal = value;
+                                                    }
+                                                  },
+                                                  decoration:
+                                                  InputDecoration(
+                                                    filled: true,
+                                                    fillColor: const Color(
+                                                        0xFFF5F5F5),
+                                                    border:
+                                                    OutlineInputBorder(
                                                       borderRadius:
                                                       BorderRadius
-                                                          .circular(
-                                                          16)),
-                                                  title: const Text(
-                                                      'Fitness Goal'),
-                                                  content:
-                                                  DropdownButtonFormField<
-                                                      String>(
-                                                    value: selectedGoal
-                                                        .isEmpty ||
-                                                        !validGoals
-                                                            .contains(
-                                                            selectedGoal)
-                                                        ? null
-                                                        : selectedGoal,
-                                                    items: const [
-                                                      DropdownMenuItem(
-                                                          value: 'Weight Loss',
-                                                          child: Text(
-                                                              'Weight Loss')),
-                                                      DropdownMenuItem(
-                                                          value:
-                                                          'Maintain Weight',
-                                                          child: Text(
-                                                              'Maintain Weight')),
-                                                      DropdownMenuItem(
-                                                          value: 'Bulk',
-                                                          child: Text('Bulk')),
-                                                    ],
-                                                    onChanged: (value) {
-                                                      if (value != null) {
-                                                        selectedGoal = value;
-                                                      }
-                                                    },
-                                                    decoration:
-                                                    InputDecoration(
-                                                      filled: true,
-                                                      fillColor: const Color(
-                                                          0xFFF5F5F5),
-                                                      border:
-                                                      OutlineInputBorder(
-                                                        borderRadius:
-                                                        BorderRadius
-                                                            .circular(10),
-                                                        borderSide:
-                                                        BorderSide.none,
-                                                      ),
+                                                          .circular(10),
+                                                      borderSide:
+                                                      BorderSide.none,
                                                     ),
                                                   ),
-                                                  actions: [
-                                                    TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                context),
-                                                        child: const Text(
-                                                            'Cancel')),
-                                                    ElevatedButton(
-                                                      onPressed: () {
-                                                        setState(() {
-                                                          AppData.goal.value =
-                                                              selectedGoal;
-                                                          if (selectedGoal ==
-                                                              'Weight Loss' ||
-                                                              selectedGoal ==
-                                                                  'Bulk') {
-                                                            AppData.weightGoalRate
-                                                                .value = null;
-                                                          }
-                                                          _recalculateHealthData();
-                                                        });
-                                                        final u = FirebaseAuth
-                                                            .instance
-                                                            .currentUser;
-                                                        if (u != null) {
-                                                          DatabaseService()
-                                                              .updateUserProfile(
-                                                              u.uid, {
-                                                            'goal':
-                                                            selectedGoal,
-                                                            'weightGoalRate':
-                                                            null,
-                                                          });
-                                                        }
-                                                        Navigator.pop(
-                                                            context);
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context),
+                                                      child: const Text(
+                                                          'Cancel')),
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        AppData.goal.value =
+                                                            selectedGoal;
                                                         if (selectedGoal ==
                                                             'Weight Loss' ||
                                                             selectedGoal ==
                                                                 'Bulk') {
-                                                          Future.delayed(
-                                                            const Duration(
-                                                                milliseconds:
-                                                                300),
-                                                            _showWeightGoalRateDialog,
-                                                          );
+                                                          AppData.weightGoalRate
+                                                              .value = null;
                                                         }
-                                                      },
-                                                      child: const Text(
-                                                          'Save'),
-                                                    ),
-                                                  ],
-                                                ),
+                                                        _recalculateHealthData();
+                                                      });
+                                                      final u = FirebaseAuth
+                                                          .instance
+                                                          .currentUser;
+                                                      if (u != null) {
+                                                        DatabaseService()
+                                                            .updateUserProfile(
+                                                            u.uid, {
+                                                          'goal':
+                                                          selectedGoal,
+                                                          'weightGoalRate':
+                                                          null,
+                                                        });
+                                                      }
+                                                      Navigator.pop(
+                                                          context);
+                                                      if (selectedGoal ==
+                                                          'Weight Loss' ||
+                                                          selectedGoal ==
+                                                              'Bulk') {
+                                                        Future.delayed(
+                                                          const Duration(
+                                                              milliseconds:
+                                                              300),
+                                                          _showWeightGoalRateDialog,
+                                                        );
+                                                      }
+                                                    },
+                                                    child: const Text(
+                                                        'Save'),
+                                                  ),
+                                                ],
+                                              ),
                                           );
                                         },
                                         child: _detailRow(
@@ -1466,7 +1456,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ─── Level picker sheet (profile-specific, updates all days) ──────────────────
+// ─── Level picker sheet ──────────────────────────────────────────────────────
 
 class _ProfileLevelPickerSheet extends StatelessWidget {
   final String? current;
