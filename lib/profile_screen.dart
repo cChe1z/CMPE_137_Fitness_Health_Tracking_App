@@ -909,43 +909,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       const SizedBox(height: 24),
 
                                       // weight tracking header
-                                      Row(
-                                        mainAxisAlignment:
-                                        MainAxisAlignment
-                                            .spaceBetween,
-                                        children: [
-                                          const Text('Weight Tracking',
-                                              style: TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight:
-                                                  FontWeight.bold)),
-                                          GestureDetector(
-                                            onTap:
-                                            _showUpdateWeightDialog,
-                                            child: Container(
-                                              padding: const EdgeInsets
-                                                  .symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: const Color(
-                                                    0xFF378ADD),
-                                                borderRadius:
-                                                BorderRadius.circular(
-                                                    20),
-                                              ),
-                                              child: const Text(
-                                                  '+ Update',
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 13,
-                                                      fontWeight:
-                                                      FontWeight
-                                                          .w600)),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                      const Text('Weight Tracking',
+                                          style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold)),
 
                                       const SizedBox(height: 12),
 
@@ -967,65 +934,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               MainAxisAlignment
                                                   .spaceAround,
                                               children: [
-                                                Column(
-                                                  children: [
-                                                    const Text('Current',
-                                                        style: TextStyle(
-                                                            color: Colors
-                                                                .grey,
-                                                            fontSize:
-                                                            13)),
-                                                    const SizedBox(
-                                                        height: 4),
-                                                    Text(
-                                                      '${currentWeight.toStringAsFixed(1)} lbs',
-                                                      style: const TextStyle(
-                                                          fontSize: 22,
-                                                          fontWeight:
-                                                          FontWeight
-                                                              .bold,
-                                                          color: Color(
-                                                              0xFF378ADD)),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const Icon(
-                                                    Icons.arrow_forward,
-                                                    color: Colors.grey),
+                                                // current weight — tap pencil to edit
                                                 GestureDetector(
-                                                  onTap:
-                                                  _showUpdateTargetWeightDialog,
+                                                  onTap: _showUpdateWeightDialog,
                                                   child: Column(
                                                     children: [
-                                                      const Text(
-                                                          'Target',
+                                                      const Text('Current',
                                                           style: TextStyle(
-                                                              color: Colors
-                                                                  .grey,
-                                                              fontSize:
-                                                              13)),
-                                                      const SizedBox(
-                                                          height: 4),
+                                                              color: Colors.grey,
+                                                              fontSize: 13)),
+                                                      const SizedBox(height: 4),
+                                                      Row(
+                                                        children: [
+                                                          Text(
+                                                            '${currentWeight.toStringAsFixed(1)} lbs',
+                                                            style: const TextStyle(
+                                                                fontSize: 22,
+                                                                fontWeight: FontWeight.bold,
+                                                                color: Color(0xFF378ADD)),
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          const Icon(Icons.edit,
+                                                              size: 14,
+                                                              color: Colors.grey),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const Icon(Icons.arrow_forward,
+                                                    color: Colors.grey),
+                                                // target weight — tap pencil to edit
+                                                GestureDetector(
+                                                  onTap: _showUpdateTargetWeightDialog,
+                                                  child: Column(
+                                                    children: [
+                                                      const Text('Target',
+                                                          style: TextStyle(
+                                                              color: Colors.grey,
+                                                              fontSize: 13)),
+                                                      const SizedBox(height: 4),
                                                       Row(
                                                         children: [
                                                           Text(
                                                             '${AppData.targetWeight.value.toStringAsFixed(1)} lbs',
                                                             style: const TextStyle(
-                                                                fontSize:
-                                                                22,
-                                                                fontWeight:
-                                                                FontWeight
-                                                                    .bold,
-                                                                color: Color(
-                                                                    0xFFD85A30)),
+                                                                fontSize: 22,
+                                                                fontWeight: FontWeight.bold,
+                                                                color: Color(0xFFD85A30)),
                                                           ),
-                                                          const SizedBox(
-                                                              width: 4),
-                                                          const Icon(
-                                                              Icons.edit,
+                                                          const SizedBox(width: 4),
+                                                          const Icon(Icons.edit,
                                                               size: 14,
-                                                              color: Colors
-                                                                  .grey),
+                                                              color: Colors.grey),
                                                         ],
                                                       ),
                                                     ],
@@ -1033,66 +994,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(height: 16),
-                                            Column(
-                                              crossAxisAlignment:
-                                              CrossAxisAlignment
-                                                  .start,
-                                              children: [
-                                                Row(
-                                                  mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                                  children: [
-                                                    const Text(
-                                                        'Progress to goal',
-                                                        style: TextStyle(
-                                                            color: Colors
-                                                                .grey,
-                                                            fontSize:
-                                                            12)),
-                                                    Text(
-                                                      '${(_weightProgress(currentWeight, AppData.targetWeight.value, currentWeight) * 100).toStringAsFixed(0)}%',
-                                                      style: const TextStyle(
-                                                          color: Color(
-                                                              0xFF378ADD),
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                          FontWeight
-                                                              .bold),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 6),
-                                                LinearProgressIndicator(
-                                                  value: _weightProgress(
-                                                    currentWeight,
-                                                    AppData.targetWeight
-                                                        .value,
-                                                    currentWeight,
-                                                  ),
-                                                  minHeight: 10,
-                                                  borderRadius:
-                                                  BorderRadius
-                                                      .circular(10),
-                                                  backgroundColor:
-                                                  Colors.white,
-                                                  color: const Color(
-                                                      0xFF378ADD),
-                                                ),
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  currentWeight <=
-                                                      AppData
-                                                          .targetWeight
-                                                          .value
-                                                      ? '🎉 Goal reached!'
-                                                      : '${(currentWeight - AppData.targetWeight.value).toStringAsFixed(1)} lbs to go',
-                                                  style: const TextStyle(
-                                                      color: Colors.grey,
-                                                      fontSize: 12),
-                                                ),
-                                              ],
+                                            const SizedBox(height: 12),
+                                            // difference label
+                                            Text(
+                                              currentWeight <= AppData.targetWeight.value
+                                                  ? '🎉 Goal reached!'
+                                                  : '${(currentWeight - AppData.targetWeight.value).toStringAsFixed(1)} lbs to go',
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ],
                                         ),
