@@ -4,6 +4,7 @@ import 'meal_tracking_screen.dart';
 import 'fitness_plan_screen.dart';
 import 'profile_screen.dart';
 import 'daily_journal_screen.dart';
+import 'services/database_service.dart';
 import 'app_data.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -112,6 +113,13 @@ class DashboardScreen extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE3F2FD),
                                   borderRadius: BorderRadius.circular(18),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.06),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
                                 child: Column(
                                   crossAxisAlignment:
@@ -405,6 +413,33 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+
+              // morning weigh-in tip
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline,
+                        color: Color(0xFF378ADD), size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tip: Weigh yourself every morning before eating for the most consistent results.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF378ADD),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 20),
 
               SizedBox(
@@ -418,6 +453,35 @@ class DashboardScreen extends StatelessWidget {
                           FirebaseAuth.instance.currentUser;
                       if (user != null) {
                         AppData.logTodayWeight(user.uid, val);
+
+                        // recalculate calorie goal using new weight
+                        // (only if we have enough profile data to do so)
+                        if (AppData.age.value > 0 &&
+                            AppData.heightInches.value > 0 &&
+                            AppData.gender.value.isNotEmpty &&
+                            AppData.activityLevel.value.isNotEmpty) {
+                          final newGoal = AppData.calculateCalorieGoal(
+                            age: AppData.age.value,
+                            weightLbs: val,
+                            heightInches: AppData.heightInches.value,
+                            gender: AppData.gender.value,
+                            activityLevel: AppData.activityLevel.value,
+                            goal: AppData.goal.value,
+                            weightGoalRate: AppData.weightGoalRate.value,
+                          );
+                          AppData.calorieGoal.value = newGoal;
+                          // also update currentWeight so the profile stays in sync
+                          AppData.currentWeight.value = val;
+                          AppData.bmi.value = AppData.calculateBMI(
+                            weightLbs: val,
+                            heightInches: AppData.heightInches.value,
+                          );
+                          DatabaseService().updateUserProfile(user.uid, {
+                            'calorieGoal': newGoal,
+                            'weightLbs': val,
+                            'bmi': AppData.bmi.value,
+                          });
+                        }
                       }
                       Navigator.pop(ctx);
                     }
@@ -460,6 +524,13 @@ class DashboardScreen extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,19 +655,27 @@ class DashboardScreen extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: Colors.white,
-              child: Icon(
-                icon,
-                color: color,
-                size: 28,
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
               ),
+              child: Icon(icon, color: color, size: 26),
             ),
 
             const SizedBox(width: 16),
@@ -625,7 +704,7 @@ class DashboardScreen extends StatelessWidget {
 
             const Icon(
               Icons.arrow_forward_ios,
-              size: 18,
+              size: 16,
               color: Colors.grey,
             ),
           ],
@@ -658,8 +737,16 @@ class _DateTrackerCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -767,8 +854,16 @@ class _TodayWorkoutCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -817,6 +912,13 @@ class _TodayWorkoutCard extends StatelessWidget {
                 .withValues(alpha: 0.25),
             width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
