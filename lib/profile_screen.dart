@@ -973,15 +973,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             ),
                                             const SizedBox(height: 12),
 
-                                            Text(
-                                              currentWeight <= AppData.targetWeight.value
-                                                  ? '🎉 Goal reached!'
-                                                  : '${(currentWeight - AppData.targetWeight.value).toStringAsFixed(1)} lbs to go',
-                                              style: const TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 12,
-                                              ),
-                                            ),
                                           ],
                                         ),
                                       ),
