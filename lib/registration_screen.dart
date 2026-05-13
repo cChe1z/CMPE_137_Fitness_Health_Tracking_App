@@ -17,7 +17,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  // track which fields have errors
   String? _emailError;
   String? _passwordError;
   String? _confirmPasswordError;
@@ -35,7 +34,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
-    // reset errors first
     setState(() {
       _emailError = null;
       _passwordError = null;
@@ -74,7 +72,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!mounted) return;
 
     if (user != null) {
-      // clear any meals left over from a previous session
       AppData.meals.value = [];
 
       Navigator.pushReplacement(
@@ -108,7 +105,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // email field
                 _buildTextField(
                   controller: _emailController,
                   hint: 'Email',
@@ -117,7 +113,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // password field
                 _buildTextField(
                   controller: _passwordController,
                   hint: 'Password',
@@ -129,7 +124,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // confirm password field
                 _buildTextField(
                   controller: _confirmPasswordController,
                   hint: 'Confirm Password',
@@ -142,7 +136,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // sign up button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -163,7 +156,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // login link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -195,7 +187,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
     VoidCallback? toggleObscure,
-    String? errorText,   // null = no error, string = show error
+    String? errorText,
   }) {
     final hasError = errorText != null;
 
@@ -210,13 +202,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             hintText: hint,
             filled: true,
             fillColor: hasError
-                ? const Color(0xFFD85A30).withValues(alpha: 0.05) // subtle orange tint
+                ? const Color(0xFFD85A30).withValues(alpha: 0.05)
                 : const Color(0xFFF5F5F5),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
             ),
-            // orange border when there's an error
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: hasError
@@ -241,7 +232,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
         ),
 
-        // error message below the field
         if (hasError) ...[
           const SizedBox(height: 4),
           Row(

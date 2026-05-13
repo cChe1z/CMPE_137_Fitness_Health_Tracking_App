@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'app_data.dart';
 import 'services/nutrition_service.dart';
 
@@ -11,71 +12,64 @@ class MealTrackingScreen extends StatefulWidget {
 
 class _MealTrackingScreenState extends State<MealTrackingScreen> {
   final _searchController = TextEditingController();
-  final _nutritionService = NutritionService();
-  
+
+  // custom entry controllers
+  final _customNameController = TextEditingController();
+  final _customCalorieController = TextEditingController();
+  final _customProteinController = TextEditingController();
+  final _customCarbsController = TextEditingController();
+  final _customFatsController = TextEditingController();
+
   List<FoodItem> _searchResults = [];
   bool _isSearching = false;
-  bool _showManualEntry = false;
-
-  // Manual entry controllers
-  final _mealController = TextEditingController();
-  final _calorieController = TextEditingController();
+  bool _showCustomForm = false;
 
   @override
   void dispose() {
     _searchController.dispose();
-    _mealController.dispose();
-    _calorieController.dispose();
+    _customNameController.dispose();
+    _customCalorieController.dispose();
+    _customProteinController.dispose();
+    _customCarbsController.dispose();
+    _customFatsController.dispose();
     super.dispose();
   }
 
   Future<void> _searchFood(String query) async {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-      });
-      return;
-    }
+    if (query.isEmpty) return;
 
     setState(() {
       _isSearching = true;
+      _searchResults = [];
+      _showCustomForm = false;
     });
 
-    try {
-      final results = await _nutritionService.searchFood(query);
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isSearching = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error searching: $e')),
-        );
-      }
-    }
+    final results = await NutritionService().searchFood(query);
+
+    setState(() {
+      _searchResults = results;
+      _isSearching = false;
+    });
   }
 
+  // ✅ NEW: Show portion selector bottom sheet
   void _showPortionSelector(FoodItem food) {
-    double selectedPortion = 1.0; // Default 1 serving
-    
+    double selectedPortion = 1.0;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final portionNutrition = food.getPortionNutrition(selectedPortion);
-            
+
             return Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                 left: 24,
                 right: 24,
                 top: 24,
@@ -97,7 +91,10 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                            const SizedBox(height: 4),
                             Text(
                               food.servingInfo,
                               style: const TextStyle(
@@ -164,20 +161,46 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
 
                   // Nutrition info card
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF378ADD).withValues(alpha: 0.08),
+                          const Color(0xFFD85A30).withValues(alpha: 0.05),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF378ADD).withValues(alpha: 0.12),
+                      ),
                     ),
                     child: Column(
                       children: [
-                        _buildNutritionRow(
-                          'Calories',
-                          portionNutrition['calories']!,
-                          'cal',
-                          const Color(0xFFD85A30),
+                        // Calories
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Calories',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '${portionNutrition['calories']} cal',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFD85A30),
+                              ),
+                            ),
+                          ],
                         ),
-                        const Divider(height: 16),
+                        const SizedBox(height: 16),
+                        // Macros
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
@@ -185,19 +208,19 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
                               'P',
                               portionNutrition['protein']!,
                               'g',
-                              Colors.blue,
+                              const Color(0xFF378ADD),
                             ),
                             _buildMacroChip(
                               'C',
                               portionNutrition['carbs']!,
                               'g',
-                              Colors.orange,
+                              const Color(0xFFE67E22),
                             ),
                             _buildMacroChip(
                               'F',
                               portionNutrition['fats']!,
                               'g',
-                              Colors.green,
+                              const Color(0xFF2E7D32),
                             ),
                           ],
                         ),
@@ -205,7 +228,7 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // Add button
                   SizedBox(
@@ -215,6 +238,9 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
                         AppData.addMeal(
                           food.displayName,
                           portionNutrition['calories']!,
+                          protein: portionNutrition['protein']!,
+                          carbs: portionNutrition['carbs']!,
+                          fats: portionNutrition['fats']!,
                         );
                         Navigator.pop(context);
                         setState(() {
@@ -222,9 +248,21 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
                           _searchController.clear();
                         });
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Meal added successfully!'),
-                            duration: Duration(seconds: 2),
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(Icons.check_circle,
+                                    color: Colors.white, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: Text('${food.displayName} added!')),
+                              ],
+                            ),
+                            backgroundColor: const Color(0xFF378ADD),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       },
@@ -233,17 +271,16 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text(
                         'Add to Meals',
-                        style: TextStyle(fontSize: 16),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 24),
                 ],
               ),
             );
@@ -253,38 +290,14 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
     );
   }
 
-  Widget _buildNutritionRow(String label, int value, String unit, Color color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Text(
-          '$value $unit',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildMacroChip(String label, int value, String unit, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
           Text(
             label,
@@ -294,11 +307,12 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
               color: color,
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(height: 4),
           Text(
             '$value$unit',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
@@ -307,24 +321,62 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
     );
   }
 
-  void _addManualMeal() {
-    final name = _mealController.text.trim();
-    final calories = int.tryParse(_calorieController.text.trim());
+  void _addCustomMeal() {
+    final name = _customNameController.text.trim();
+    final calories = int.tryParse(_customCalorieController.text.trim());
+    final protein = int.tryParse(_customProteinController.text.trim()) ?? 0;
+    final carbs = int.tryParse(_customCarbsController.text.trim()) ?? 0;
+    final fats = int.tryParse(_customFatsController.text.trim()) ?? 0;
 
-    if (name.isEmpty || calories == null) return;
+    if (name.isEmpty || calories == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please enter at least a meal name and calories'),
+          backgroundColor: const Color(0xFFD85A30),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
 
-    AppData.addMeal(name, calories);
+    AppData.addMeal(name, calories,
+        protein: protein, carbs: carbs, fats: fats);
 
-    _mealController.clear();
-    _calorieController.clear();
-    
+    _customNameController.clear();
+    _customCalorieController.clear();
+    _customProteinController.clear();
+    _customCarbsController.clear();
+    _customFatsController.clear();
+
+    setState(() => _showCustomForm = false);
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Meal added successfully!'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text('$name added!')),
+          ],
+        ),
+        backgroundColor: const Color(0xFF378ADD),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
+
+  // ── Macro totals from today's meals ─────────────────────────────────────
+
+  int get _totalProtein =>
+      AppData.meals.value.fold(0, (sum, m) => sum + m.protein);
+  int get _totalCarbs =>
+      AppData.meals.value.fold(0, (sum, m) => sum + m.carbs);
+  int get _totalFats =>
+      AppData.meals.value.fold(0, (sum, m) => sum + m.fats);
 
   @override
   Widget build(BuildContext context) {
@@ -333,235 +385,468 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
       builder: (context, meals, child) {
         final totalCalories = AppData.totalCalories;
         final calorieGoal = AppData.calorieGoal.value;
+        final remaining = calorieGoal - totalCalories;
         final progress = (totalCalories / calorieGoal).clamp(0.0, 1.0);
+        final isOver = totalCalories > calorieGoal;
 
         return Scaffold(
           backgroundColor: Colors.white,
           appBar: AppBar(
             title: const Text(
               'Meal Tracker',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 28,
+                color: Colors.black,
+              ),
             ),
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
             elevation: 0,
           ),
           body: SafeArea(
-            child: Column(
-              children: [
-                // Progress header
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '$totalCalories / $calorieGoal',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF378ADD),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'calories consumed',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 16),
-                        LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 10,
-                          borderRadius: BorderRadius.circular(10),
-                          backgroundColor: Colors.white,
-                          color: const Color(0xFFD85A30),
-                        ),
-                      ],
-                    ),
+            child: SingleChildScrollView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Calorie gauge card ─────────────────────────────
+                  _buildCalorieGaugeCard(
+                    totalCalories: totalCalories,
+                    calorieGoal: calorieGoal,
+                    remaining: remaining,
+                    progress: progress,
+                    isOver: isOver,
                   ),
-                ),
 
-                // Search bar with toggle
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              decoration: InputDecoration(
-                                hintText: 'Search for food...',
-                                prefixIcon: const Icon(Icons.search),
-                                filled: true,
-                                fillColor: const Color(0xFFF5F5F5),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF378ADD),
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                              onChanged: (value) {
-                                // Debounce search
-                                Future.delayed(const Duration(milliseconds: 500), () {
-                                  if (_searchController.text == value) {
-                                    _searchFood(value);
-                                  }
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _showManualEntry = !_showManualEntry;
-                                if (_showManualEntry) {
-                                  _searchResults = [];
-                                  _searchController.clear();
-                                }
-                              });
-                            },
-                            icon: Icon(
-                              _showManualEntry ? Icons.search : Icons.edit,
-                              color: const Color(0xFF378ADD),
-                            ),
-                          ),
-                        ],
+                  const SizedBox(height: 16),
+
+                  // ── Macro breakdown row ────────────────────────────
+                  _buildMacroRow(),
+
+                  const SizedBox(height: 24),
+
+                  // ── Search + custom ────────────────────────────────
+                  _buildSearchSection(),
+
+                  const SizedBox(height: 20),
+
+                  // ── Results / custom form / spinner ────────────────
+                  _buildResultsSection(),
+
+                  // ── Meals today ────────────────────────────────────
+                  _buildMealsSection(meals),
+
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Circular calorie gauge ──────────────────────────────────────────────
+
+  Widget _buildCalorieGaugeCard({
+    required int totalCalories,
+    required int calorieGoal,
+    required int remaining,
+    required double progress,
+    required bool isOver,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF378ADD).withValues(alpha: 0.08),
+            const Color(0xFFD85A30).withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF378ADD).withValues(alpha: 0.12),
+        ),
+      ),
+      child: Row(
+        children: [
+          // circular gauge
+          SizedBox(
+            width: 120,
+            height: 120,
+            child: CustomPaint(
+              painter: _CalorieRingPainter(
+                progress: progress,
+                isOver: isOver,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$totalCalories',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: isOver
+                            ? const Color(0xFFD85A30)
+                            : const Color(0xFF378ADD),
                       ),
+                    ),
+                    Text(
+                      'of $calorieGoal',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
 
-                      if (_searchResults.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${_searchResults.length} results',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _searchResults = [];
-                                    _searchController.clear();
-                                  });
-                                },
-                                child: const Text('Clear'),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+          const SizedBox(width: 24),
+
+          // right side text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isOver ? 'Over Goal' : 'Remaining',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-
-                const SizedBox(height: 16),
-
-                // Content area
-                Expanded(
-                  child: _showManualEntry
-                      ? _buildManualEntryForm()
-                      : _searchResults.isNotEmpty
-                          ? _buildSearchResults()
-                          : _buildMealsList(meals),
+                const SizedBox(height: 4),
+                Text(
+                  '${isOver ? totalCalories - calorieGoal : remaining} cal',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: isOver
+                        ? const Color(0xFFD85A30)
+                        : const Color(0xFF2E7D32),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${(progress * 100).round()}% of daily goal',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildSearchResults() {
+  // ── Macro breakdown ─────────────────────────────────────────────────────
+
+  Widget _buildMacroRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _macroCard(
+            'Protein',
+            _totalProtein,
+            'g',
+            const Color(0xFF378ADD),
+            Icons.fitness_center,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _macroCard(
+            'Carbs',
+            _totalCarbs,
+            'g',
+            const Color(0xFFE67E22),
+            Icons.grain,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _macroCard(
+            'Fats',
+            _totalFats,
+            'g',
+            const Color(0xFF2E7D32),
+            Icons.water_drop,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _macroCard(
+      String label, int value, String unit, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            '$value$unit',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Search section ──────────────────────────────────────────────────────
+
+  Widget _buildSearchSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Add Food',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                onSubmitted: _searchFood,
+                decoration: InputDecoration(
+                  hintText: 'Search foods...',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
+                  filled: true,
+                  fillColor: const Color(0xFFF5F5F5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF378ADD),
+                      width: 1.5,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // custom button
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showCustomForm = !_showCustomForm;
+                  if (_showCustomForm) {
+                    _searchResults = [];
+                  }
+                });
+              },
+              child: Container(
+                height: 50,
+                width: 80,
+                decoration: BoxDecoration(
+                  color: _showCustomForm
+                      ? const Color(0xFFD85A30)
+                      : const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: _showCustomForm
+                        ? const Color(0xFFD85A30)
+                        : Colors.transparent,
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(
+                  Icons.edit,
+                  color:
+                      _showCustomForm ? Colors.white : Colors.grey.shade600,
+                  size: 22,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── Results section ─────────────────────────────────────────────────────
+
+  Widget _buildResultsSection() {
     if (_isSearching) {
-      return const Center(child: CircularProgressIndicator());
+      return Container(
+        padding: const EdgeInsets.all(32),
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF378ADD),
+          ),
+        ),
+      );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      itemCount: _searchResults.length,
-      itemBuilder: (context, index) {
-        final food = _searchResults[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    if (_showCustomForm) {
+      return _buildCustomForm();
+    }
+
+    if (_searchResults.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Search Results',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _searchResults = [];
+                    _searchController.clear();
+                  });
+                },
+                child: const Text(
+                  'Clear',
+                  style: TextStyle(
+                    color: Color(0xFF378ADD),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ),
-            leading: Container(
-              padding: const EdgeInsets.all(8),
+          const SizedBox(height: 8),
+          ...List.generate(
+            _searchResults.length,
+            (index) => _buildSearchResultCard(_searchResults[index]),
+          ),
+          const SizedBox(height: 16),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  // ✅ UPDATED: Search result card now opens portion selector
+  Widget _buildSearchResultCard(FoodItem food) {
+    return GestureDetector(
+      onTap: () => _showPortionSelector(food),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 color: const Color(0xFFE3F2FD),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                '${food.caloriesPer100g}\ncal',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFD85A30),
-                  height: 1.2,
+              child: Center(
+                child: Text(
+                  '${food.caloriesPer100g}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFD85A30),
+                  ),
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-            title: Text(
-              food.displayName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSmallMacro('P', food.proteinPer100g, Colors.blue),
-                  const SizedBox(width: 8),
-                  _buildSmallMacro('C', food.carbsPer100g, Colors.orange),
-                  const SizedBox(width: 8),
-                  _buildSmallMacro('F', food.fatsPer100g, Colors.green),
+                  Text(
+                    food.displayName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      _miniMacro(
+                          'P', '${food.proteinPer100g}g', const Color(0xFF378ADD)),
+                      const SizedBox(width: 8),
+                      _miniMacro(
+                          'C', '${food.carbsPer100g}g', const Color(0xFFE67E22)),
+                      const SizedBox(width: 8),
+                      _miniMacro(
+                          'F', '${food.fatsPer100g}g', const Color(0xFF2E7D32)),
+                    ],
+                  ),
                 ],
               ),
             ),
-            trailing: IconButton(
-              onPressed: () => _showPortionSelector(food),
-              icon: const Icon(
-                Icons.add_circle,
-                color: Color(0xFF378ADD),
-              ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey,
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildSmallMacro(String label, int value, Color color) {
+  Widget _miniMacro(String label, String value, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -575,7 +860,7 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
         ),
         const SizedBox(width: 2),
         Text(
-          '${value}g',
+          value,
           style: const TextStyle(
             fontSize: 10,
             color: Colors.grey,
@@ -585,76 +870,90 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
     );
   }
 
-  Widget _buildManualEntryForm() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+  // ── Custom form ─────────────────────────────────────────────────────────
+
+  Widget _buildCustomForm() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFD85A30).withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Manual Entry',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _mealController,
-            decoration: InputDecoration(
-              hintText: 'Meal name',
-              filled: true,
-              fillColor: const Color(0xFFF5F5F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: Color(0xFF378ADD),
-                  width: 2,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Custom Meal',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _calorieController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: 'Calories',
-              filled: true,
-              fillColor: const Color(0xFFF5F5F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: Color(0xFF378ADD),
-                  width: 2,
+              TextButton(
+                onPressed: () => setState(() => _showCustomForm = false),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Color(0xFFD85A30),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _buildCustomField(
+              _customNameController, 'Meal name', TextInputType.text),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCustomField(_customCalorieController,
+                    'Calories *', TextInputType.number),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildCustomField(
+                    _customProteinController, 'Protein (g)', TextInputType.number),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCustomField(
+                    _customCarbsController, 'Carbs (g)', TextInputType.number),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildCustomField(
+                    _customFatsController, 'Fats (g)', TextInputType.number),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _addManualMeal,
+              onPressed: _addCustomMeal,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF378ADD),
+                backgroundColor: const Color(0xFFD85A30),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: const Text(
                 'Add Meal',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -663,80 +962,280 @@ class _MealTrackingScreenState extends State<MealTrackingScreen> {
     );
   }
 
-  Widget _buildMealsList(List<Meal> meals) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Meals Today',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          if (meals.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(10),
+  // ── Meals section ───────────────────────────────────────────────────────
+
+  Widget _buildMealsSection(List<Meal> meals) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Today\'s Meals',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-              child: const Text(
-                'No meals added yet.\nSearch for food or use manual entry.',
-                style: TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            )
-          else
-            ...List.generate(
-              meals.length,
-              (index) => _buildMealCard(meals[index], index),
             ),
-        ],
-      ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF378ADD).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${meals.length}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF378ADD),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        if (meals.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.restaurant_menu,
+                    color: Colors.grey.shade300, size: 40),
+                const SizedBox(height: 10),
+                const Text(
+                  'No meals logged yet',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: Colors.black54),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Search or add a custom meal above.',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
+            ),
+          )
+        else
+          ...List.generate(
+            meals.length,
+            (index) => _buildMealCard(meals[index], index),
+          ),
+      ],
     );
   }
+
+  // ── Meal card ───────────────────────────────────────────────────────────
 
   Widget _buildMealCard(Meal meal, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(10),
+    return Dismissible(
+      key: ValueKey('${meal.name}_${meal.calories}_$index'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => AppData.deleteMeal(index),
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD85A30),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.delete_outline,
+            color: Colors.white, size: 24),
       ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            backgroundColor: Color(0xFFE3F2FD),
-            child: Icon(Icons.restaurant, color: Color(0xFF378ADD)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              meal.name,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            // food icon
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.restaurant,
+                  color: Color(0xFF378ADD), size: 22),
             ),
-          ),
-          Text(
-            '${meal.calories} cal',
-            style: const TextStyle(
-              color: Color(0xFFD85A30),
-              fontWeight: FontWeight.bold,
+
+            const SizedBox(width: 12),
+
+            // name + macros
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    meal.name,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (meal.protein > 0 ||
+                      meal.carbs > 0 ||
+                      meal.fats > 0) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (meal.protein > 0)
+                          _miniMacro('P', '${meal.protein}g',
+                              const Color(0xFF378ADD)),
+                        if (meal.protein > 0) const SizedBox(width: 8),
+                        if (meal.carbs > 0)
+                          _miniMacro('C', '${meal.carbs}g',
+                              const Color(0xFFE67E22)),
+                        if (meal.carbs > 0) const SizedBox(width: 8),
+                        if (meal.fats > 0)
+                          _miniMacro('F', '${meal.fats}g',
+                              const Color(0xFF2E7D32)),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            onPressed: () {
-              AppData.deleteMeal(index);
-            },
-            icon: const Icon(
-              Icons.delete_outline,
-              color: Color(0xFFD85A30),
+
+            const SizedBox(width: 8),
+
+            // calorie badge
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD85A30).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${meal.calories}',
+                style: const TextStyle(
+                  color: Color(0xFFD85A30),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
             ),
-          ),
-        ],
+
+            // delete button
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => AppData.deleteMeal(index),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.close,
+                    color: Colors.grey.shade400, size: 18),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  // ── Custom form field ───────────────────────────────────────────────────
+
+  Widget _buildCustomField(
+      TextEditingController controller, String hint, TextInputType type) {
+    return TextField(
+      controller: controller,
+      keyboardType: type,
+      style: const TextStyle(color: Colors.black87, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+        filled: true,
+        fillColor: const Color(0xFFF5F5F5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:
+              const BorderSide(color: Color(0xFF378ADD), width: 1.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
+    );
+  }
+}
+
+// ─── Calorie ring painter ──────────────────────────────────────────────────────
+
+class _CalorieRingPainter extends CustomPainter {
+  final double progress;
+  final bool isOver;
+
+  _CalorieRingPainter({
+    required this.progress,
+    required this.isOver,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 10;
+    const strokeWidth = 10.0;
+
+    // background ring
+    final bgPaint = Paint()
+      ..color = const Color(0xFFE8E8E8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, bgPaint);
+
+    // progress arc
+    final progressPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    if (isOver) {
+      progressPaint.color = const Color(0xFFD85A30);
+    } else {
+      progressPaint.shader = SweepGradient(
+        startAngle: -math.pi / 2,
+        endAngle: 3 * math.pi / 2,
+        colors: const [
+          Color(0xFF378ADD),
+          Color(0xFF2E7D32),
+        ],
+        stops: const [0.0, 1.0],
+        transform: const GradientRotation(-math.pi / 2),
+      ).createShader(
+        Rect.fromCircle(center: center, radius: radius),
+      );
+    }
+
+    final sweepAngle = 2 * math.pi * progress.clamp(0.0, 1.0);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      sweepAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _CalorieRingPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.isOver != isOver;
   }
 }

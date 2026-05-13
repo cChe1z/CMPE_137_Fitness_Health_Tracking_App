@@ -20,7 +20,6 @@ class DashboardScreen extends StatelessWidget {
     return 'Obese';
   }
 
-  // 0 = Mon … 6 = Sun (matches weekSchedule keys)
   int get _todayIndex => DateTime.now().weekday - 1;
 
   String _formattedDate() {
@@ -83,7 +82,6 @@ class DashboardScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
 
-                              // date tracker
                               _DateTrackerCard(
                                 dateString: _formattedDate(),
                                 todayIndex: todayIndex,
@@ -92,7 +90,6 @@ class DashboardScreen extends StatelessWidget {
 
                               const SizedBox(height: 20),
 
-                              // today's workout preview
                               _TodayWorkoutCard(
                                 todayIndex: todayIndex,
                                 todayBlocks: todayBlocks,
@@ -106,7 +103,6 @@ class DashboardScreen extends StatelessWidget {
 
                               const SizedBox(height: 20),
 
-                              // today's progress card
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(20),
@@ -177,7 +173,6 @@ class DashboardScreen extends StatelessWidget {
 
                                     const SizedBox(height: 12),
 
-                                    // divider between BMI and weight entry
                                     Divider(
                                         color: Colors.white,
                                         thickness: 1,
@@ -185,7 +180,6 @@ class DashboardScreen extends StatelessWidget {
 
                                     const SizedBox(height: 12),
 
-                                    // today's weight row with quick log / edit button
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -216,7 +210,7 @@ class DashboardScreen extends StatelessWidget {
                                             ),
                                           ],
                                         ),
-                                        // log / edit button
+
                                         TextButton.icon(
                                           onPressed: () =>
                                               _showWeightDialog(context),
@@ -264,7 +258,6 @@ class DashboardScreen extends StatelessWidget {
 
                               const SizedBox(height: 18),
 
-                              // calorie logger card
                               _dashboardCard(
                                 icon: Icons.local_fire_department,
                                 title: 'Calorie Logger',
@@ -281,7 +274,6 @@ class DashboardScreen extends StatelessWidget {
                                 },
                               ),
 
-                              // daily journal card — calendar history of calories + weight
                               _dashboardCard(
                                 icon: Icons.calendar_month_rounded,
                                 title: 'Daily Journal',
@@ -299,10 +291,8 @@ class DashboardScreen extends StatelessWidget {
                                 },
                               ),
 
-                              // fitness plan card (enhanced)
                               _fitnessPlanCard(context, schedule),
 
-                              // profile card
                               _dashboardCard(
                                 icon: Icons.person,
                                 title: 'Profile',
@@ -322,7 +312,7 @@ class DashboardScreen extends StatelessWidget {
                         ),
                       ),
                     );
-                      }, // end todayWeight builder
+                      },
                     );
                   },
                 );
@@ -334,9 +324,6 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // ── Weight logger dialog ─────────────────────────────────────────────────
-
-  /// Shows a bottom sheet where the user can log or edit today's weight.
   void _showWeightDialog(BuildContext context) {
     final controller = TextEditingController(
       text: AppData.todayWeight.value != null
@@ -363,7 +350,7 @@ class DashboardScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // drag handle
+
               Center(
                 child: Container(
                   width: 40,
@@ -415,7 +402,6 @@ class DashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // morning weigh-in tip
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -454,8 +440,6 @@ class DashboardScreen extends StatelessWidget {
                       if (user != null) {
                         AppData.logTodayWeight(user.uid, val);
 
-                        // recalculate calorie goal using new weight
-                        // (only if we have enough profile data to do so)
                         if (AppData.age.value > 0 &&
                             AppData.heightInches.value > 0 &&
                             AppData.gender.value.isNotEmpty &&
@@ -470,7 +454,7 @@ class DashboardScreen extends StatelessWidget {
                             weightGoalRate: AppData.weightGoalRate.value,
                           );
                           AppData.calorieGoal.value = newGoal;
-                          // also update currentWeight so the profile stays in sync
+
                           AppData.currentWeight.value = val;
                           AppData.bmi.value = AppData.calculateBMI(
                             weightLbs: val,
@@ -508,7 +492,6 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // enhanced fitness plan card
   Widget _fitnessPlanCard(BuildContext context, WeekSchedule schedule) {
     return GestureDetector(
       onTap: () {
@@ -535,7 +518,7 @@ class DashboardScreen extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // square icon container
+
             Container(
               width: 52,
               height: 52,
@@ -556,7 +539,7 @@ class DashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // title + badge row
+
                   Row(
                     children: [
                       const Text(
@@ -595,7 +578,6 @@ class DashboardScreen extends StatelessWidget {
 
                   const SizedBox(height: 10),
 
-                  // live day chips reflecting the user's schedule
                   Wrap(
                     spacing: 5,
                     runSpacing: 5,
@@ -714,8 +696,6 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-// ─── Date Tracker Card ─────────────────────────────────────────────────────────
-
 class _DateTrackerCard extends StatelessWidget {
   final String dateString;
   final int todayIndex;
@@ -782,7 +762,6 @@ class _DateTrackerCard extends StatelessWidget {
 
           const SizedBox(width: 12),
 
-          // Mon–Sun dot indicators
           Row(
             children: List.generate(7, (i) {
               final isToday = todayIndex == i;
@@ -831,8 +810,6 @@ class _DateTrackerCard extends StatelessWidget {
   }
 }
 
-// ─── Today's Workout Preview Card ─────────────────────────────────────────────
-
 class _TodayWorkoutCard extends StatelessWidget {
   final int todayIndex;
   final List<WorkoutBlock> todayBlocks;
@@ -848,7 +825,6 @@ class _TodayWorkoutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isWeekend = todayIndex == 5 || todayIndex == 6;
 
-    // rest day — no workouts scheduled
     if (todayBlocks.isEmpty) {
       return Container(
         width: double.infinity,
@@ -897,7 +873,6 @@ class _TodayWorkoutCard extends StatelessWidget {
       );
     }
 
-    // active workout day — show block summary + tap to open plan
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -924,7 +899,6 @@ class _TodayWorkoutCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // header row
             Row(
               children: [
                 Expanded(
@@ -959,7 +933,6 @@ class _TodayWorkoutCard extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // workout block chips
             Wrap(
               spacing: 8,
               runSpacing: 6,

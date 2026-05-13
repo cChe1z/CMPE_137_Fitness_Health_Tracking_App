@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class FoodItem {
   final String name;
-  final String description; // Full description with brand/details
+  final String description;
   final int caloriesPer100g;
   final int proteinPer100g;
   final int carbsPer100g;
@@ -11,7 +11,7 @@ class FoodItem {
   final double servingSize;
   final String servingSizeUnit;
   final String? brandName;
-  final String dataType; // "Branded", "Survey (FNDDS)", etc.
+  final String dataType;
 
   FoodItem({
     required this.name,
@@ -26,7 +26,6 @@ class FoodItem {
     required this.dataType,
   });
 
-  // Calculate nutrition for a specific portion
   Map<String, int> getPortionNutrition(double portionMultiplier) {
     return {
       'calories': (caloriesPer100g * portionMultiplier).round(),
@@ -65,7 +64,6 @@ class NutritionService {
         final data = json.decode(response.body);
         List<dynamic> foods = data['foods'] ?? [];
         
-        // Convert to FoodItem objects
         List<FoodItem> foodItems = foods.map((food) {
           var nutrients = food['foodNutrients'] ?? [];
           double calories = 0;
@@ -83,7 +81,6 @@ class NutritionService {
             if (name.contains('Total lipid')) fats = value;
           }
 
-          // Get serving size info
           double servingSize = (food['servingSize'] ?? 100).toDouble();
           String servingSizeUnit = food['servingSizeUnit'] ?? 'g';
           String brandName = food['brandOwner'] ?? food['brandName'] ?? '';
@@ -103,7 +100,6 @@ class NutritionService {
           );
         }).toList();
 
-        // Remove duplicates (same name, brand, and similar calories)
         return _removeDuplicates(foodItems);
       }
       return [];
@@ -134,21 +130,17 @@ class NutritionService {
     Map<String, FoodItem> uniqueItems = {};
     
     for (var item in items) {
-      // Create a unique key based on name and brand
       String key = '${item.name}_${item.brandName ?? 'generic'}'.toLowerCase();
       
-      // If we haven't seen this item, or this one has more detailed info, keep it
       if (!uniqueItems.containsKey(key) || 
           (item.brandName != null && uniqueItems[key]!.brandName == null)) {
         uniqueItems[key] = item;
       } else {
-        // If calories are significantly different (>20%), it's a different item
         int existingCal = uniqueItems[key]!.caloriesPer100g;
         int newCal = item.caloriesPer100g;
         double difference = (existingCal - newCal).abs() / existingCal;
         
         if (difference > 0.2) {
-          // Add a suffix to make it unique
           uniqueItems['${key}_${newCal}cal'] = item;
         }
       }

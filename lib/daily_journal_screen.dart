@@ -2,12 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'services/database_service.dart';
 
-// ─── Daily Journal Screen ──────────────────────────────────────────────────────
-//
-// Shows a calendar where each day that has data is highlighted.
-// Tapping a day opens a detail panel showing logged calories and weight.
-// Data is read from the 'daily_logs' sub-collection in Firestore.
-
 class DailyJournalScreen extends StatefulWidget {
   const DailyJournalScreen({super.key});
 
@@ -16,13 +10,10 @@ class DailyJournalScreen extends StatefulWidget {
 }
 
 class _DailyJournalScreenState extends State<DailyJournalScreen> {
-  // currently displayed month (year + month only — day is always 1)
   late DateTime _displayedMonth;
 
-  // selected day; null = nothing selected
   DateTime? _selectedDay;
 
-  // all log entries keyed by 'YYYY-MM-DD'
   Map<String, Map<String, dynamic>> _logs = {};
 
   bool _loading = true;
@@ -35,8 +26,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     _selectedDay = DateTime(now.year, now.month, now.day);
     _loadLogs();
   }
-
-  // ── Data loading ─────────────────────────────────────────────────────────
 
   Future<void> _loadLogs() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -58,8 +47,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     });
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
   String _dateKey(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
@@ -67,15 +54,12 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
   Map<String, dynamic>? _logFor(DateTime day) => _logs[_dateKey(day)];
 
-  // number of days in the displayed month
   int get _daysInMonth =>
       DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0).day;
 
-  // weekday index (0=Mon) of the first day of the displayed month
   int get _firstWeekday =>
       DateTime(_displayedMonth.year, _displayedMonth.month, 1).weekday - 1;
 
-  // month navigation
   void _prevMonth() => setState(() {
         _displayedMonth =
             DateTime(_displayedMonth.year, _displayedMonth.month - 1);
@@ -89,8 +73,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       });
 
   bool _isFuture(DateTime day) => day.isAfter(DateTime.now());
-
-  // ── UI ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +106,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    // ── month navigator ───────────────────────────────────
                     _MonthNavigator(
                       month: _displayedMonth,
                       onPrev: _prevMonth,
@@ -133,7 +114,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
                     const SizedBox(height: 12),
 
-                    // ── calendar grid ─────────────────────────────────────
                     _CalendarGrid(
                       displayedMonth: _displayedMonth,
                       daysInMonth: _daysInMonth,
@@ -147,14 +127,12 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
                     const SizedBox(height: 24),
 
-                    // ── detail panel for selected day ─────────────────────
                     if (_selectedDay != null)
                       _DayDetailPanel(
                         day: _selectedDay!,
                         log: _logFor(_selectedDay!),
                       ),
 
-                    // ── month summary (if no day selected) ────────────────
                     if (_selectedDay == null) _MonthSummary(
                       displayedMonth: _displayedMonth,
                       daysInMonth: _daysInMonth,
@@ -167,8 +145,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     );
   }
 }
-
-// ─── Month Navigator ──────────────────────────────────────────────────────────
 
 class _MonthNavigator extends StatelessWidget {
   final DateTime month;
@@ -212,7 +188,6 @@ class _MonthNavigator extends StatelessWidget {
           icon: Icon(
             Icons.chevron_right_rounded,
             size: 30,
-            // grey out the arrow if we're already at/past the current month
             color: isCurrentOrFuture ? Colors.grey.shade300 : Colors.black87,
           ),
           onPressed: isCurrentOrFuture ? null : onNext,
@@ -221,8 +196,6 @@ class _MonthNavigator extends StatelessWidget {
     );
   }
 }
-
-// ─── Calendar Grid ────────────────────────────────────────────────────────────
 
 class _CalendarGrid extends StatelessWidget {
   final DateTime displayedMonth;
@@ -261,7 +234,6 @@ class _CalendarGrid extends StatelessWidget {
       child: Column(
         children: [
 
-          // day-of-week headers
           Row(
             children: dayHeaders.map((h) {
               return Expanded(
@@ -281,7 +253,6 @@ class _CalendarGrid extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // day cells
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -293,7 +264,6 @@ class _CalendarGrid extends StatelessWidget {
             ),
             itemCount: firstWeekday + daysInMonth,
             itemBuilder: (context, index) {
-              // leading empty cells
               if (index < firstWeekday) return const SizedBox.shrink();
 
               final dayNum = index - firstWeekday + 1;
@@ -314,11 +284,6 @@ class _CalendarGrid extends StatelessWidget {
                   day.month == selectedDay!.month &&
                   day.day == selectedDay!.day;
 
-              // colour logic:
-              // selected   → blue fill
-              // today      → blue border only
-              // has data   → indigo dot indicator below number
-              // future     → greyed out
               Color bgColor = Colors.transparent;
               Color textColor = future ? Colors.grey.shade400 : Colors.black87;
               FontWeight fontWeight = FontWeight.normal;
@@ -360,7 +325,6 @@ class _CalendarGrid extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // small dot if there's a log entry for this day
                     const SizedBox(height: 2),
                     Container(
                       width: 5,
@@ -382,8 +346,6 @@ class _CalendarGrid extends StatelessWidget {
     );
   }
 }
-
-// ─── Day Detail Panel ─────────────────────────────────────────────────────────
 
 class _DayDetailPanel extends StatelessWidget {
   final DateTime day;
@@ -411,7 +373,6 @@ class _DayDetailPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // section header
         Text(
           dateLabel,
           style: const TextStyle(
@@ -437,10 +398,8 @@ class _DayDetailPanel extends StatelessWidget {
             ),
           )
         else
-          // stat tiles
           Row(
             children: [
-              // calories tile
               Expanded(
                 child: _StatTile(
                   icon: Icons.local_fire_department_rounded,
@@ -450,7 +409,6 @@ class _DayDetailPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // weight tile
               Expanded(
                 child: _StatTile(
                   icon: Icons.monitor_weight_rounded,
@@ -517,9 +475,6 @@ class _StatTile extends StatelessWidget {
     );
   }
 }
-
-// ─── Month Summary ────────────────────────────────────────────────────────────
-// Shown when no day is selected — avg calories + avg weight for the month.
 
 class _MonthSummary extends StatelessWidget {
   final DateTime displayedMonth;

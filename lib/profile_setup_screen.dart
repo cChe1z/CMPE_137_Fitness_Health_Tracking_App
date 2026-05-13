@@ -25,7 +25,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   String? _selectedWeightGoalRate;
   String? _selectedFitnessLevel;
 
-  // errors
   String? _nameError;
   String? _ageError;
   String? _weightError;
@@ -115,14 +114,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     bool hasError = false;
 
-    // name validation
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       setState(() => _nameError = 'Name is required');
       hasError = true;
     }
 
-    // age validation
     final age = int.tryParse(_ageController.text.trim());
     if (_ageController.text.isEmpty) {
       setState(() => _ageError = 'Age is required');
@@ -132,7 +129,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       hasError = true;
     }
 
-    // weight validation
     final weight = double.tryParse(_weightController.text.trim());
     if (_weightController.text.isEmpty) {
       setState(() => _weightError = 'Weight is required');
@@ -176,7 +172,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     final heightInches = (_selectedFeet * 12 + _selectedInches).toDouble();
 
-    // save name to AppData
     AppData.userName.value = name;
 
     AppData.saveProfileData(
@@ -230,7 +225,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              // header
               const Text(
                 'Tell us about you',
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -241,7 +235,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 32),
 
-              // name field
               _buildTextField(
                 controller: _nameController,
                 hint: 'Your name',
@@ -249,7 +242,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 16),
 
-              // age and gender row
               Row(
                 children: [
                   Expanded(
@@ -275,7 +267,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 16),
 
-              // weight and height row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -295,7 +286,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 16),
 
-              // activity level dropdown
               _buildDropdown(
                 hint: 'Activity Level',
                 value: _selectedActivityLevel,
@@ -306,7 +296,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 24),
 
-              // fitness goal section
               const Text(
                 'Fitness goal',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -320,7 +309,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 _errorRow(_goalError!),
               ],
 
-              // weight loss / gain rate picker
               if (_goalNeedsRate) ...[
                 const SizedBox(height: 24),
                 Row(
@@ -371,7 +359,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
               const SizedBox(height: 28),
 
-              // fitness level section
               const Text(
                 'Fitness level',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -391,7 +378,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ],
               const SizedBox(height: 32),
 
-              // continue button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -418,8 +404,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ),
     );
   }
-
-  // ── Rate option card ──────────────────────────────────────────────────────
 
   Widget _buildRateOption(Map<String, dynamic> rate) {
     final key = rate['key'] as String;
@@ -553,8 +537,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // ── Fitness level option ──────────────────────────────────────────────────
-
   Widget _buildFitnessLevelOption(Map<String, dynamic> level) {
     final label = level['label'] as String;
     final description = level['description'] as String;
@@ -624,8 +606,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // ── Goal option ───────────────────────────────────────────────────────────
-
   Widget _buildGoalOption(String goal) {
     final isSelected = _selectedGoal == goal;
     return GestureDetector(
@@ -672,8 +652,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  // ── Error row ─────────────────────────────────────────────────────────────
-
   Widget _errorRow(String message) {
     return Row(
       children: [
@@ -688,8 +666,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ],
     );
   }
-
-  // ── Text field ────────────────────────────────────────────────────────────
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -749,8 +725,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ],
     );
   }
-
-  // ── Dropdown ──────────────────────────────────────────────────────────────
 
   Widget _buildDropdown({
     required String hint,
@@ -815,8 +789,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ],
     );
   }
-
-  // ── Height picker ─────────────────────────────────────────────────────────
 
   Widget _buildHeightPicker() {
     final hasError = _heightError != null;
@@ -900,7 +872,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // feet wheel
+
                     Column(
                       children: [
                         const Text('ft',
@@ -952,7 +924,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       ],
                     ),
                     const SizedBox(width: 32),
-                    // inches wheel
+
                     Column(
                       children: [
                         const Text('in',

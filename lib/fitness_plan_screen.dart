@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_data.dart';
 
-// ─── Exercise model ────────────────────────────────────────────────────────────
-
 class Exercise {
   final String name;
   final String sets;
@@ -18,8 +16,6 @@ class Exercise {
     required this.instructions,
   });
 }
-
-// ─── Exercise library ──────────────────────────────────────────────────────────
 
 class WorkoutLibrary {
   static const Map<String, List<Exercise>> abs = {
@@ -926,8 +922,6 @@ class WorkoutLibrary {
   }
 }
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
-
 const List<String> kDayNames = [
   'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
 ];
@@ -967,8 +961,6 @@ Color levelColor(String level) {
   }
 }
 
-// ─── kWorkoutDays — shared with dashboard ─────────────────────────────────────
-
 const List<Map<String, dynamic>> kWorkoutDays = [
   {'day': 'Mon', 'focus': 'Abs',       'icon': Icons.self_improvement,  'color': Color(0xFFD85A30)},
   {'day': 'Tue', 'focus': 'Arms',      'icon': Icons.fitness_center,    'color': Color(0xFF378ADD)},
@@ -976,8 +968,6 @@ const List<Map<String, dynamic>> kWorkoutDays = [
   {'day': 'Thu', 'focus': 'Legs',      'icon': Icons.directions_run,    'color': Color(0xFF6A1B9A)},
   {'day': 'Fri', 'focus': 'Shoulders', 'icon': Icons.sports_gymnastics, 'color': Color(0xFFE65100)},
 ];
-
-// ─── Main screen ───────────────────────────────────────────────────────────────
 
 class FitnessPlanScreen extends StatefulWidget {
   const FitnessPlanScreen({super.key});
@@ -1017,8 +1007,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
     setState(() => _selectedDayIndex = index);
     _animController.forward(from: 0);
   }
-
-  // ── Add workout bottom sheet ───────────────────────────────────────────────
 
   void _showAddWorkoutSheet(int dayIndex) {
     String? selectedFocus;
@@ -1185,8 +1173,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
     );
   }
 
-  // ── Change difficulty for one block ──────────────────────────────────────
-
   void _showChangeDifficultySheet(int dayIndex, WorkoutBlock block) {
     String selectedLevel = block.level;
 
@@ -1290,8 +1276,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
     );
   }
 
-  // ── Day-level picker — only affects the selected day ──────────────────────
-
   void _showDayLevelSheet() {
     showModalBottomSheet(
       context: context,
@@ -1310,8 +1294,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
       ),
     );
   }
-
-  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -1336,7 +1318,7 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                   fontSize: 28),
             ),
             actions: [
-              // Edit toggle
+
               TextButton.icon(
                 onPressed: () =>
                     setState(() => _editMode = !_editMode),
@@ -1350,7 +1332,7 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
                   style: const TextStyle(color: Color(0xFF378ADD)),
                 ),
               ),
-              // Day-level picker (only changes the selected day)
+
               TextButton.icon(
                 onPressed: _showDayLevelSheet,
                 icon: const Icon(Icons.tune,
@@ -1384,8 +1366,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
       },
     );
   }
-
-  // ── Day tab strip ──────────────────────────────────────────────────────────
 
   Widget _buildDayStrip(WeekSchedule schedule) {
     return SizedBox(
@@ -1451,8 +1431,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
     );
   }
 
-  // ── Day content ────────────────────────────────────────────────────────────
-
   Widget _buildDayContent({
     required int dayIndex,
     required List<WorkoutBlock> blocks,
@@ -1517,8 +1495,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
     );
   }
 
-  // ── Rest card ──────────────────────────────────────────────────────────────
-
   Widget _buildRestCard({required bool isWeekend}) {
     return Container(
       width: double.infinity,
@@ -1554,8 +1530,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
       ),
     );
   }
-
-  // ── Workout block card ─────────────────────────────────────────────────────
 
   Widget _buildWorkoutBlock({
     required int dayIndex,
@@ -1713,8 +1687,6 @@ class _FitnessPlanScreenState extends State<FitnessPlanScreen>
   }
 }
 
-// ─── Exercise row ──────────────────────────────────────────────────────────────
-
 class _ExerciseRow extends StatelessWidget {
   final Exercise exercise;
   final int index;
@@ -1836,8 +1808,6 @@ class _ExerciseRow extends StatelessWidget {
     );
   }
 }
-
-// ─── Reusable level picker sheet ───────────────────────────────────────────────
 
 class _LevelPickerSheet extends StatelessWidget {
   final String? current;

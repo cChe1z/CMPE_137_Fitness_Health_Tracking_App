@@ -80,10 +80,6 @@ class DatabaseService {
     return total;
   }
 
-  // ── Daily snapshots (weight + calories per day) ───────────────────────────
-
-  /// Merge-writes fields into a per-user, per-date document.
-  /// dateKey format: 'YYYY-MM-DD'
   Future<void> saveDailySnapshot(
       String userId, String dateKey, Map<String, dynamic> data) async {
     await _db
@@ -94,7 +90,6 @@ class DatabaseService {
         .set(data, SetOptions(merge: true));
   }
 
-  /// Returns the snapshot for a single date, or null if none exists.
   Future<Map<String, dynamic>?> getDailySnapshot(
       String userId, String dateKey) async {
     final doc = await _db
@@ -106,7 +101,6 @@ class DatabaseService {
     return doc.data();
   }
 
-  /// Returns all daily logs for a user, sorted oldest → newest.
   Future<List<Map<String, dynamic>>> getDailyLogs(String userId) async {
     final snap = await _db
         .collection('users')

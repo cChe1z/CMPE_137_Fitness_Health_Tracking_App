@@ -64,11 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
         );
       } else {
-        // restore profile data into AppData
         final level = profile['fitnessLevel'] as String? ?? 'Beginner';
         AppData.fitnessLevel.value = level;
 
-        // restore saved weekly schedule, or build default if none saved
         final savedSchedule = profile['weekSchedule'] as Map<String, dynamic>?;
         if (savedSchedule != null) {
           AppData.scheduleFromMap(savedSchedule);
@@ -76,8 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
           AppData.initDefaultSchedule(level);
         }
 
-        // check if a new week has started — reset per-day level
-        // overrides back to the global fitness level
         AppData.checkAndResetWeeklySchedule(
           lastResetIso: profile['scheduleLastReset'] as String?,
           globalLevel: level,
@@ -88,10 +84,8 @@ class _LoginScreenState extends State<LoginScreen> {
         AppData.bmi.value =
             (profile['bmi'] as num?)?.toDouble() ?? 0.0;
 
-        // restore name
         AppData.userName.value = profile['name'] as String? ?? '';
 
-        // restore profile screen fields
         AppData.age.value =
             (profile['age'] as num?)?.toInt() ?? 0;
         AppData.currentWeight.value =
@@ -103,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
         AppData.activityLevel.value =
             profile['activityLevel'] as String? ?? '';
 
-        // sanitize legacy 'Muscle Gain' value -> 'Bulk'
         final rawGoal = profile['goal'] as String? ?? '';
         final sanitizedGoal = rawGoal == 'Muscle Gain' ? 'Bulk' : rawGoal;
         AppData.goal.value = sanitizedGoal;
@@ -118,7 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
             (profile['targetWeight'] as num?)?.toDouble() ??
                 AppData.currentWeight.value;
 
-        // restore today's logged meals from Firestore
         await AppData.loadTodaysMeals(user.uid);
         if (!mounted) return;
 

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'services/database_service.dart';
 
-// ─── Meal model ────────────────────────────────────────────────────────────────
-
 class Meal {
   final String name;
   final int calories;
@@ -21,8 +19,6 @@ class Meal {
     this.firestoreId,
   });
 }
-
-// ─── Workout schedule models ───────────────────────────────────────────────────
 
 class WorkoutBlock {
   final String focus;
@@ -45,8 +41,6 @@ class WorkoutBlock {
 }
 
 typedef WeekSchedule = Map<int, List<WorkoutBlock>>;
-
-// ─── Weight loss / gain rate constants ────────────────────────────────────────
 
 const List<Map<String, dynamic>> kWeightLossRates = [
   {
@@ -96,8 +90,6 @@ const List<Map<String, dynamic>> kWeightGainRates = [
   },
 ];
 
-// ─── AppData ───────────────────────────────────────────────────────────────────
-
 class AppData {
   static final ValueNotifier<List<Meal>> meals = ValueNotifier<List<Meal>>([]);
 
@@ -110,8 +102,6 @@ class AppData {
   static final ValueNotifier<WeekSchedule> weekSchedule =
   ValueNotifier<WeekSchedule>(_emptyWeek());
 
-  // ── Profile fields ────────────────────────────────────────────────────────
-
   static final ValueNotifier<String> userName = ValueNotifier<String>('');
   static final ValueNotifier<double> currentWeight = ValueNotifier<double>(0);
   static final ValueNotifier<double> targetWeight = ValueNotifier<double>(0);
@@ -123,8 +113,6 @@ class AppData {
 
   static final ValueNotifier<String?> weightGoalRate =
   ValueNotifier<String?>(null);
-
-  // ── Schedule helpers ─────────────────────────────────────────────────────
 
   static WeekSchedule _emptyWeek() =>
       {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []};
@@ -175,7 +163,6 @@ class AppData {
     saveScheduleToFirestore();
   }
 
-  /// Updates all workout blocks on a single day to the given level.
   static void applyLevelToDay(int dayIndex, String level) {
     final current = weekSchedule.value;
     final updated = Map<int, List<WorkoutBlock>>.from(current);
@@ -186,8 +173,6 @@ class AppData {
     saveScheduleToFirestore();
   }
 
-  /// Updates every workout block across all days to the given level,
-  /// and also updates the global fitnessLevel default.
   static void applyLevelToAllBlocks(String level) {
     fitnessLevel.value = level;
     final current = weekSchedule.value;
@@ -199,9 +184,6 @@ class AppData {
     saveScheduleToFirestore();
   }
 
-  // ── Schedule persistence ─────────────────────────────────────────────────
-
-  /// Converts the current weekSchedule to a JSON-safe map for Firestore.
   static Map<String, dynamic> scheduleToMap() {
     final schedule = weekSchedule.value;
     final map = <String, dynamic>{};
@@ -213,7 +195,6 @@ class AppData {
     return map;
   }
 
-  /// Restores weekSchedule from a Firestore map.
   static void scheduleFromMap(Map<String, dynamic> map) {
     final schedule = _emptyWeek();
     map.forEach((key, value) {
@@ -232,7 +213,6 @@ class AppData {
     weekSchedule.value = schedule;
   }
 
-  /// Saves the current schedule to Firestore for the logged-in user.
   static void saveScheduleToFirestore() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -242,17 +222,11 @@ class AppData {
     }
   }
 
-  // ── Weekly reset logic ───────────────────────────────────────────────────
-
-  /// Returns the most recent Monday at midnight for a given date.
   static DateTime _startOfWeek(DateTime date) {
     final d = DateTime(date.year, date.month, date.day);
-    return d.subtract(Duration(days: d.weekday - 1)); // weekday 1=Mon
+    return d.subtract(Duration(days: d.weekday - 1));
   }
 
-  /// Checks if a new week has started since the last reset.
-  /// If so, resets all workout blocks to the global fitness level
-  /// while keeping the same focus/muscle groups, and saves to Firestore.
   static void checkAndResetWeeklySchedule({
     required String? lastResetIso,
     required String globalLevel,
@@ -260,15 +234,12 @@ class AppData {
     final now = DateTime.now();
     final currentWeekStart = _startOfWeek(now);
 
-    // parse the last reset date
     DateTime? lastReset;
     if (lastResetIso != null) {
       lastReset = DateTime.tryParse(lastResetIso);
     }
 
-    // if never reset, or last reset was before this Monday → reset
     if (lastReset == null || lastReset.isBefore(currentWeekStart)) {
-      // reset all blocks to the global level, keep the focus groups
       final current = weekSchedule.value;
       final updated = Map<int, List<WorkoutBlock>>.from(current);
       updated.forEach((dayIndex, blocks) {
@@ -277,7 +248,6 @@ class AppData {
       });
       weekSchedule.value = updated;
 
-      // save the reset schedule and the new reset timestamp
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         DatabaseService().updateUserProfile(user.uid, {
@@ -287,8 +257,6 @@ class AppData {
       }
     }
   }
-
-  // ── Meal helpers ─────────────────────────────────────────────────────────
 
   static int get totalCalories {
     return meals.value.fold(0, (sum, meal) => sum + meal.calories);
@@ -313,7 +281,6 @@ class AppData {
         'fats': fats,
         'loggedAt': DateTime.now(),
       });
-      // keep the daily snapshot in sync after every meal change
       saveTodayCalorieSnapshot(user.uid);
     }
   }
@@ -328,12 +295,9 @@ class AppData {
       DatabaseService().deleteMeal(meal.firestoreId!);
     }
 
-    // keep the daily snapshot in sync after every meal change
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) saveTodayCalorieSnapshot(user.uid);
   }
-
-  // ── BMI / calorie helpers ────────────────────────────────────────────────
 
   static double calculateBMI({
     required double weightLbs,
@@ -420,13 +384,9 @@ class AppData {
     return maintenance;
   }
 
-  // ── Today's logged weight ────────────────────────────────────────────────
-
-  /// Weight logged by the user for today (null = not yet logged today).
   static final ValueNotifier<double?> todayWeight =
       ValueNotifier<double?>(null);
 
-  /// Log (or overwrite) today's weight and persist to Firestore.
   static Future<void> logTodayWeight(String userId, double weightLbs) async {
     todayWeight.value = weightLbs;
     final dateKey = _dateKey(DateTime.now());
@@ -436,7 +396,6 @@ class AppData {
     });
   }
 
-  /// Load today's weight entry from Firestore (called on login / app resume).
   static Future<void> loadTodayWeight(String userId) async {
     final dateKey = _dateKey(DateTime.now());
     final snap = await DatabaseService().getDailySnapshot(userId, dateKey);
@@ -447,8 +406,6 @@ class AppData {
     }
   }
 
-  /// Save today's calorie total as a daily snapshot (called automatically
-  /// whenever a meal is added or deleted, and on login).
   static Future<void> saveTodayCalorieSnapshot(String userId) async {
     final dateKey = _dateKey(DateTime.now());
     await DatabaseService().saveDailySnapshot(userId, dateKey, {
@@ -457,7 +414,6 @@ class AppData {
     });
   }
 
-  /// Returns a YYYY-MM-DD string for a given date, used as a Firestore doc key.
   static String _dateKey(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'

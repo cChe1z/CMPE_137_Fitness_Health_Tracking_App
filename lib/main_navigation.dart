@@ -17,7 +17,6 @@ class _MainNavigationState extends State<MainNavigation>
     with WidgetsBindingObserver {
   int _currentIndex = 0;
 
-  /// The date (year/month/day) when meals were last loaded.
   late DateTime _lastLoadedDate;
 
   @override
@@ -33,8 +32,6 @@ class _MainNavigationState extends State<MainNavigation>
     super.dispose();
   }
 
-  /// Called when the app comes back to the foreground (e.g. user
-  /// switches back to the app after midnight).
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -42,8 +39,6 @@ class _MainNavigationState extends State<MainNavigation>
     }
   }
 
-  /// If the calendar day has changed since we last loaded meals,
-  /// clear the in-memory list and reload today's meals from Firestore.
   void _checkDayRollover() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -56,7 +51,6 @@ class _MainNavigationState extends State<MainNavigation>
       if (user != null) {
         AppData.loadTodaysMeals(user.uid);
       } else {
-        // no user logged in — just clear meals
         AppData.meals.value = [];
       }
     }
@@ -80,7 +74,6 @@ class _MainNavigationState extends State<MainNavigation>
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          // check for day rollover every time the user taps a tab
           _checkDayRollover();
           setState(() => _currentIndex = index);
         },
